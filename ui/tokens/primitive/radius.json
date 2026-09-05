@@ -1,0 +1,11 @@
+{
+  "$description": "Stage 3. A fixed radius set. The rule that governs which is used where is in design/rules.md.",
+  "radius": {
+    "$type": "dimension",
+    "none": { "$value": "0px" },
+    "sm":   { "$value": "4px" },
+    "md":   { "$value": "6px" },
+    "lg":   { "$value": "10px" },
+    "full": { "$value": "9999px" }
+  }
+}

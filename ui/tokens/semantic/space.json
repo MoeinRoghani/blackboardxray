@@ -1,0 +1,17 @@
+{
+  "$description": "Stage 8. Density is a mode: comfortable is the default and compact re-points these three tokens and nothing else.",
+  "layout": {
+    "row-inset":    { "$value": "{space.3}" },
+    "row-gap":      { "$value": "{space.2}" },
+    "panel-inset":  { "$value": "{space.4}" },
+    "section-gap":  { "$value": "{space.6}" },
+    "page-inset":   { "$value": "{space.6}" },
+    "rail-width":   { "$value": "216px" },
+    "inspector-width": { "$value": "420px" }
+  },
+  "layout-compact": {
+    "row-inset":   { "$value": "{space.2}" },
+    "row-gap":     { "$value": "{space.1}" },
+    "panel-inset": { "$value": "{space.3}" }
+  }
+}

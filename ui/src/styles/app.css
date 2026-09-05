@@ -1,0 +1,189 @@
+@import "tailwindcss";
+@import "./tokens.css";
+@import "./theme.css";
+
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+/* The base layer sets what every screen inherits. Nothing below names a value:
+   every declaration reads a semantic token. */
+@layer base {
+  * {
+    border-color: var(--border-subtle);
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  html[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--surface-page);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-body-size);
+    line-height: var(--text-body-leading);
+    letter-spacing: var(--text-body-tracking);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* A sequence number is an address. It is read digit by digit and compared
+     against another one, so every number in this product is tabular. */
+  .numeric {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+
+  :focus-visible {
+    outline: var(--focus-width) solid var(--focus);
+    outline-offset: var(--focus-offset);
+    border-radius: var(--radius-sm);
+  }
+
+  ::selection {
+    background-color: var(--brand-bg);
+    color: var(--text-primary);
+  }
+
+  ::-webkit-scrollbar {
+    width: var(--space-2);
+    height: var(--space-2);
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: var(--radius-full);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--border-strong);
+  }
+}
+
+@layer components {
+  /* The type roles, as classes, so a screen asks for a role and never a size. */
+  .type-display {
+    font-size: var(--text-display-size);
+    line-height: var(--text-display-leading);
+    font-weight: var(--text-display-weight);
+    letter-spacing: var(--text-display-tracking);
+  }
+
+  .type-title {
+    font-size: var(--text-title-size);
+    line-height: var(--text-title-leading);
+    font-weight: var(--text-title-weight);
+    letter-spacing: var(--text-title-tracking);
+  }
+
+  .type-heading {
+    font-size: var(--text-heading-size);
+    line-height: var(--text-heading-leading);
+    font-weight: var(--text-heading-weight);
+  }
+
+  .type-body {
+    font-size: var(--text-body-size);
+    line-height: var(--text-body-leading);
+  }
+
+  .type-small {
+    font-size: var(--text-small-size);
+    line-height: var(--text-small-leading);
+  }
+
+  .type-caption {
+    font-size: var(--text-caption-size);
+    line-height: var(--text-caption-leading);
+  }
+
+  /* The one uppercase label style in the product, used for column headers and
+     nothing else. */
+  .type-label {
+    font-size: var(--text-label-size);
+    line-height: var(--text-label-leading);
+    font-weight: var(--text-label-weight);
+    letter-spacing: var(--text-label-tracking);
+    text-transform: uppercase;
+  }
+}
+
+@layer utilities {
+  /* Loading is the final layout with its text replaced by a shimmer of the
+     same shape, so nothing moves when the data lands. */
+  @keyframes bxr-shimmer {
+    0% {
+      opacity: 0.45;
+    }
+    50% {
+      opacity: 0.75;
+    }
+    100% {
+      opacity: 0.45;
+    }
+  }
+
+  .shimmer {
+    animation: bxr-shimmer 1.4s var(--easing-standard) infinite;
+  }
+
+  /* The only loop in the product. It stops when the run closes. */
+  @keyframes bxr-live {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    70% {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+  }
+
+  .live-halo {
+    animation: bxr-live 2s var(--easing-exit) infinite;
+  }
+
+  /* The spine arrives before what hangs off it, because it is the axis. */
+  @keyframes bxr-draw {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  .spine-draw {
+    transform-origin: top;
+    animation: bxr-draw var(--duration-slow) var(--easing-enter) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shimmer,
+    .live-halo,
+    .spine-draw {
+      animation: none;
+    }
+
+    .live-halo {
+      opacity: 0;
+    }
+
+    .spine-draw {
+      transform: none;
+    }
+  }
+}

@@ -1,0 +1,36 @@
+# A whole platform, from nothing, in one command.
+#
+#   docker compose up -d
+#   docker compose exec xray blackboardxray key production
+#
+# The key is printed once. Point an application at http://localhost:8900 with
+# it and its runs appear.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: blackboardxray
+      POSTGRES_PASSWORD: blackboardxray
+      POSTGRES_DB: blackboardxray
+    volumes:
+      - record:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blackboardxray"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  xray:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      BLACKBOARDXRAY_DATABASE_URL: postgresql://blackboardxray:blackboardxray@postgres:5432/blackboardxray
+    ports:
+      - "8900:8900"
+    restart: unless-stopped
+
+volumes:
+  record:

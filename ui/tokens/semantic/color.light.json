@@ -1,0 +1,126 @@
+{
+  "$description": "Stage 8. The semantic tier. Every token is named by the job it does and aliases a primitive. Theming re-points this file and nothing else.",
+  "color": {
+    "surface": {
+      "page": {
+        "$value": "{slate.1}"
+      },
+      "raised": {
+        "$value": "{slate.2}"
+      },
+      "sunken": {
+        "$value": "{slate.3}"
+      },
+      "hover": {
+        "$value": "{slate.3}"
+      },
+      "active": {
+        "$value": "{slate.4}"
+      },
+      "overlay": {
+        "$value": "{slateA.11}"
+      }
+    },
+    "border": {
+      "subtle": {
+        "$value": "{slate.5}"
+      },
+      "default": {
+        "$value": "{slate.7}"
+      },
+      "strong": {
+        "$value": "{slate.8}"
+      }
+    },
+    "text": {
+      "primary": {
+        "$value": "{slate.12}"
+      },
+      "secondary": {
+        "$value": "{slate.11}"
+      },
+      "on-solid": {
+        "$value": "{slate.1}"
+      }
+    },
+    "brand": {
+      "solid": {
+        "$value": "{cyan.9}"
+      },
+      "solid-hover": {
+        "$value": "{cyan.10}"
+      },
+      "text": {
+        "$value": "{cyan.11}"
+      },
+      "bg": {
+        "$value": "{cyan.3}"
+      },
+      "border": {
+        "$value": "{cyan.7}"
+      },
+      "on-solid": {
+        "$value": "{slate.12}"
+      }
+    },
+    "focus": {
+      "$value": "{cyan.11}"
+    },
+    "settled": {
+      "text": {
+        "$value": "{green.12}"
+      },
+      "bg": {
+        "$value": "{green.3}"
+      },
+      "border": {
+        "$value": "{green.6}"
+      },
+      "solid": {
+        "$value": "{green.9}"
+      }
+    },
+    "expired": {
+      "text": {
+        "$value": "{amber.12}"
+      },
+      "bg": {
+        "$value": "{amber.3}"
+      },
+      "border": {
+        "$value": "{amber.6}"
+      },
+      "solid": {
+        "$value": "{amber.9}"
+      }
+    },
+    "aborted": {
+      "text": {
+        "$value": "{red.12}"
+      },
+      "bg": {
+        "$value": "{red.3}"
+      },
+      "border": {
+        "$value": "{red.6}"
+      },
+      "solid": {
+        "$value": "{red.9}"
+      }
+    },
+    "open": {
+      "text": {
+        "$value": "{cyan.12}"
+      },
+      "bg": {
+        "$value": "{cyan.3}"
+      },
+      "border": {
+        "$value": "{cyan.6}"
+      },
+      "solid": {
+        "$value": "{cyan.9}"
+      }
+    }
+  }
+}

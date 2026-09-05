@@ -1,0 +1,12 @@
+{
+  "$description": "Stage 9. The only layers that exist. A z-index outside this set is a defect.",
+  "z": {
+    "$type": "number",
+    "base":     { "$value": "0" },
+    "sticky":   { "$value": "10" },
+    "rail":     { "$value": "20" },
+    "dropdown": { "$value": "40" },
+    "tooltip":  { "$value": "50" },
+    "dialog":   { "$value": "60" }
+  }
+}

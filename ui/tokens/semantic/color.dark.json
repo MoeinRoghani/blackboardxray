@@ -1,0 +1,126 @@
+{
+  "$description": "Stage 8. The dark theme is a second scale, not an inversion. Same keys, same jobs, pointing at the Dark scales, so every component themes unchanged.",
+  "color": {
+    "surface": {
+      "page": {
+        "$value": "{slateDark.1}"
+      },
+      "raised": {
+        "$value": "{slateDark.2}"
+      },
+      "sunken": {
+        "$value": "{slateDark.3}"
+      },
+      "hover": {
+        "$value": "{slateDark.3}"
+      },
+      "active": {
+        "$value": "{slateDark.4}"
+      },
+      "overlay": {
+        "$value": "{slateDarkA.11}"
+      }
+    },
+    "border": {
+      "subtle": {
+        "$value": "{slateDark.5}"
+      },
+      "default": {
+        "$value": "{slateDark.7}"
+      },
+      "strong": {
+        "$value": "{slateDark.8}"
+      }
+    },
+    "text": {
+      "primary": {
+        "$value": "{slateDark.12}"
+      },
+      "secondary": {
+        "$value": "{slateDark.11}"
+      },
+      "on-solid": {
+        "$value": "{slateDark.12}"
+      }
+    },
+    "brand": {
+      "solid": {
+        "$value": "{cyanDark.9}"
+      },
+      "solid-hover": {
+        "$value": "{cyanDark.10}"
+      },
+      "text": {
+        "$value": "{cyanDark.11}"
+      },
+      "bg": {
+        "$value": "{cyanDark.3}"
+      },
+      "border": {
+        "$value": "{cyanDark.7}"
+      },
+      "on-solid": {
+        "$value": "{slateDark.1}"
+      }
+    },
+    "focus": {
+      "$value": "{cyanDark.11}"
+    },
+    "settled": {
+      "text": {
+        "$value": "{greenDark.12}"
+      },
+      "bg": {
+        "$value": "{greenDark.3}"
+      },
+      "border": {
+        "$value": "{greenDark.6}"
+      },
+      "solid": {
+        "$value": "{greenDark.9}"
+      }
+    },
+    "expired": {
+      "text": {
+        "$value": "{amberDark.12}"
+      },
+      "bg": {
+        "$value": "{amberDark.3}"
+      },
+      "border": {
+        "$value": "{amberDark.6}"
+      },
+      "solid": {
+        "$value": "{amberDark.9}"
+      }
+    },
+    "aborted": {
+      "text": {
+        "$value": "{redDark.12}"
+      },
+      "bg": {
+        "$value": "{redDark.3}"
+      },
+      "border": {
+        "$value": "{redDark.6}"
+      },
+      "solid": {
+        "$value": "{redDark.9}"
+      }
+    },
+    "open": {
+      "text": {
+        "$value": "{cyanDark.12}"
+      },
+      "bg": {
+        "$value": "{cyanDark.3}"
+      },
+      "border": {
+        "$value": "{cyanDark.6}"
+      },
+      "solid": {
+        "$value": "{cyanDark.9}"
+      }
+    }
+  }
+}

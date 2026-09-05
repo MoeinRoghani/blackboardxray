@@ -1,0 +1,11 @@
+{
+  "$description": "Stage 10. Set where this content breaks. The run detail needs two panes, which stop fitting below 1024.",
+  "screen": {
+    "$type": "dimension",
+    "sm": { "$value": "640px" },
+    "md": { "$value": "768px" },
+    "lg": { "$value": "1024px" },
+    "xl": { "$value": "1280px" },
+    "2xl": { "$value": "1600px" }
+  }
+}

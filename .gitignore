@@ -1,0 +1,20 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+node_modules/
+dist/
+.DS_Store
+
+# Generated. The token build writes these from tokens/, and the interface
+# build writes the web directory into the package.
+ui/src/styles/tokens.css
+ui/src/styles/theme.css
+ui/tokens/primitive/color.json
+src/blackboardxray/server/web/
+
+# Local to the working copy, never committed.
+LLM Build Prompts.txt
+Product Design Procedure.md

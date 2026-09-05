@@ -1,0 +1,17 @@
+{
+  "$description": "Stage 9. Shadows are tinted to the surface hue, never pure black. An instrument uses few of them: a hairline carries most hierarchy.",
+  "shadow": {
+    "$type": "shadow",
+    "none": { "$value": "none" },
+    "sm":   { "$value": "0 1px 2px 0 rgb(19 26 32 / 0.06)" },
+    "md":   { "$value": "0 4px 12px -2px rgb(19 26 32 / 0.10), 0 2px 4px -2px rgb(19 26 32 / 0.06)" },
+    "lg":   { "$value": "0 16px 40px -8px rgb(19 26 32 / 0.18), 0 4px 10px -4px rgb(19 26 32 / 0.10)" }
+  },
+  "shadow-dark": {
+    "$type": "shadow",
+    "none": { "$value": "none" },
+    "sm":   { "$value": "0 1px 2px 0 rgb(0 0 0 / 0.32)" },
+    "md":   { "$value": "0 4px 12px -2px rgb(0 0 0 / 0.44), 0 2px 4px -2px rgb(0 0 0 / 0.32)" },
+    "lg":   { "$value": "0 16px 40px -8px rgb(0 0 0 / 0.56), 0 4px 10px -4px rgb(0 0 0 / 0.40)" }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "$description": "Stage 7. Duration scales with the moving element. Exits are shorter than entrances. Every one of these has a reduced-motion pair in tokens.css.",
+  "duration": {
+    "$type": "duration",
+    "instant": { "$value": "0ms" },
+    "fast":    { "$value": "120ms" },
+    "base":    { "$value": "180ms" },
+    "slow":    { "$value": "260ms" }
+  },
+  "easing": {
+    "$type": "cubicBezier",
+    "standard": { "$value": "cubic-bezier(0.2, 0, 0, 1)" },
+    "enter":    { "$value": "cubic-bezier(0, 0, 0, 1)" },
+    "exit":     { "$value": "cubic-bezier(0.3, 0, 1, 1)" }
+  }
+}

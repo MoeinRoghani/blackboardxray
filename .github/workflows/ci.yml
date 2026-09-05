@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: xray
+          POSTGRES_PASSWORD: xray
+          POSTGRES_DB: xray_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb # v6.1.0
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv pip install --system -e ".[server,httpx]" "blackboardx>=0.11.1" pytest ruff mypy
+      - run: ruff check src tests examples
+      - run: ruff format --check src tests examples
+      - run: mypy src
+      # The database tests skip where no server is named. Naming one here is
+      # what stops them silently skipping in the only place it matters.
+      - run: python -m pytest -q --strict-markers
+        env:
+          BLACKBOARDXRAY_TEST_DSN: postgresql://xray:xray@localhost:5432/xray_test
+      - name: Refuse a run that skipped a database test
+        run: |
+          python -m pytest -q 2>&1 | tee /tmp/out
+          grep -q "skipped" /tmp/out && echo "a test skipped; the database was not reachable" && exit 1 || true
+        env:
+          BLACKBOARDXRAY_TEST_DSN: postgresql://xray:xray@localhost:5432/xray_test
+
+  interface:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: "24"
+      - run: npm install
+        working-directory: ui
+      # The token pipeline, the raw-value gate, the contrast gate, and tsc.
+      # A screen that sets a value or a pair below its contrast floor fails here.
+      - run: npm run verify
+        working-directory: ui
+      - run: npm run build
+        working-directory: ui

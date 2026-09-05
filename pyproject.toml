@@ -1,0 +1,81 @@
+[build-system]
+requires = ["hatchling>=1.32.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "blackboardxray"
+version = "0.1.0"
+description = "A self-hosted observability platform for blackboard runs."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "Moein Roghani", email = "moein.roghani@proton.me" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
+# The client half has no dependency. An application already running a
+# blackboard adds this package and sends over the standard library.
+dependencies = []
+
+[project.optional-dependencies]
+# What the server needs. An application sending events installs none of it.
+server = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "psycopg[binary,pool]>=3.2",
+]
+# Faster and pooled sending, where the application already has httpx.
+httpx = ["httpx>=0.27"]
+
+[project.scripts]
+blackboardxray = "blackboardxray.server.__main__:main"
+
+[project.urls]
+Repository = "https://github.com/MoeinRoghani/blackboardxray"
+
+[dependency-groups]
+dev = [
+    "blackboardxray[server,httpx]",
+    "blackboardx>=0.11.1",
+    "mypy>=1.14",
+    "pytest>=8.3",
+    "ruff>=0.9",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/blackboardxray"]
+
+[tool.ruff]
+line-length = 88
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "C4", "SIM", "RUF"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Header",
+    "fastapi.Query",
+]
+
+[tool.mypy]
+strict = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["uvicorn.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--import-mode=importlib --strict-markers -ra"
+pythonpath = ["src"]

@@ -1,0 +1,12 @@
+{
+  "$description": "Stage 8. Roles, not sizes. A screen asks for body or for a number, never for 13px.",
+  "text": {
+    "display":  { "size": "{size.2xl}", "leading": "{leading.tight}",  "weight": "{weight.semibold}", "tracking": "{tracking.tight}" },
+    "title":    { "size": "{size.xl}",  "leading": "{leading.snug}",   "weight": "{weight.semibold}", "tracking": "{tracking.tight}" },
+    "heading":  { "size": "{size.lg}",  "leading": "{leading.snug}",   "weight": "{weight.medium}",   "tracking": "{tracking.normal}" },
+    "body":     { "size": "{size.md}",  "leading": "{leading.normal}", "weight": "{weight.regular}",  "tracking": "{tracking.normal}" },
+    "small":    { "size": "{size.sm}",  "leading": "{leading.normal}", "weight": "{weight.regular}",  "tracking": "{tracking.normal}" },
+    "caption":  { "size": "{size.xs}",  "leading": "{leading.snug}",   "weight": "{weight.regular}",  "tracking": "{tracking.normal}" },
+    "label":    { "size": "{size.2xs}", "leading": "{leading.snug}",   "weight": "{weight.medium}",   "tracking": "{tracking.wide}" }
+  }
+}

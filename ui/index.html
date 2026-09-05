@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>blackboardxray</title>
+    <script>
+      // Applied before first paint, so a dark-theme operator never sees a
+      // light flash. The stored choice wins over the system preference.
+      (function () {
+        try {
+          var stored = localStorage.getItem("bxr-theme");
+          var system = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var theme = stored || (system ? "dark" : "light");
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "$description": "Stage 11. Focus-visible is never removed. These are its dimensions; its color is a semantic token.",
+  "focus": {
+    "$type": "dimension",
+    "width":  { "$value": "2px" },
+    "offset": { "$value": "2px" }
+  }
+}
