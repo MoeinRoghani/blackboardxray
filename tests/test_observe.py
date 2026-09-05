@@ -380,3 +380,80 @@ def test_a_write_after_the_run_closed_is_recorded_as_refused(
     refused = collected.of(EventKind.WRITE_REFUSED)
     assert len(refused) == 1
     assert refused[0]["body"]["cause"] == "run_closed"
+
+
+def test_content_is_recorded_by_default() -> None:
+    # A platform that shows an operator the size of a finding and not the
+    # finding has answered the wrong question.
+    collected = Collected()
+    with Xray(
+        endpoint="http://platform",
+        token="t",
+        transport=collected,
+        flush_interval=0.05,
+    ) as observed:
+        model = observed.create_model(
+            board_id="b14",
+            store=InMemoryStore(),
+            regions=regions(),
+            premises={"severity": "sev2"},
+            limits=RunLimits(
+                wall_clock=timedelta(seconds=30), idle=timedelta(seconds=30)
+            ),
+        )
+        model.control.write("findings", {"cause": "a bad deploy"}, writer="ocp")
+        observed.flush(5)
+    admitted = collected.of(EventKind.WRITE_ADMITTED)
+    assert admitted[0]["body"]["content"]["content"] == {"cause": "a bad deploy"}
+
+
+def test_a_deployment_can_send_no_content_at_all() -> None:
+    collected = Collected()
+    with Xray(
+        endpoint="http://platform",
+        token="t",
+        content_limit=0,
+        transport=collected,
+        flush_interval=0.05,
+    ) as observed:
+        model = observed.create_model(
+            board_id="b15",
+            store=InMemoryStore(),
+            regions=regions(),
+            premises={"severity": "sev2"},
+            limits=RunLimits(
+                wall_clock=timedelta(seconds=30), idle=timedelta(seconds=30)
+            ),
+        )
+        model.control.write("findings", {"cause": "a bad deploy"}, writer="ocp")
+        observed.flush(5)
+    carried = collected.of(EventKind.WRITE_ADMITTED)[0]["body"]["content"]
+    assert carried["bytes"] > 0
+    assert carried["type"] == "object"
+    assert "content" not in carried
+    assert "preview" not in carried
+
+
+def test_a_contribution_past_the_limit_is_truncated_and_says_so() -> None:
+    collected = Collected()
+    with Xray(
+        endpoint="http://platform",
+        token="t",
+        content_limit=64,
+        transport=collected,
+        flush_interval=0.05,
+    ) as observed:
+        model = observed.create_model(
+            board_id="b16",
+            store=InMemoryStore(),
+            regions=regions(),
+            premises={"severity": "sev2"},
+            limits=RunLimits(
+                wall_clock=timedelta(seconds=30), idle=timedelta(seconds=30)
+            ),
+        )
+        model.control.write("findings", {"cause": "x" * 500}, writer="ocp")
+        observed.flush(5)
+    carried = collected.of(EventKind.WRITE_ADMITTED)[0]["body"]["content"]
+    assert carried["truncated"] is True
+    assert len(carried["preview"]) == 64

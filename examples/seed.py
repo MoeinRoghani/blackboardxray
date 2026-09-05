@@ -203,7 +203,7 @@ def run_one(
 
 def main() -> None:
     random.seed(1904)
-    with Xray(endpoint=ENDPOINT, token=TOKEN, content_limit=2048) as xray:
+    with Xray(endpoint=ENDPOINT, token=TOKEN) as xray:
         print("seeding runs")
         run_one(xray, "incident-4471", service=SERVICES[0], idle=0.4, wall=20)
         run_one(

@@ -14,21 +14,15 @@ That is deliberate and it is the same posture `blackboardx` takes with
 can carry the policy. Put this behind whatever already fronts your internal
 tools. Do not put it on a public address.
 
-## A contribution's content is not stored by default
+## A contribution's content is truncated past 4kB
 
-A write records the size and the shape of its content and none of the content.
-A deployment whose contributions are not sensitive passes `content_limit` and
-gets the content up to that many bytes, truncated past it.
+Content is recorded. `content_limit` bounds one contribution and defaults to
+4096 bytes, and anything past it is truncated with the record saying so, so a
+contribution larger than that is present but not whole.
 
-The default is the safe one because a contribution is the application's own
-data and this platform should not be the reason it leaves the process.
-
-## The platform never reads your board
-
-Everything here arrived because an application sent it. There is no connection
-to your store, so a gap left by dropped events cannot be filled in later by
-reading the record. The board remains the source of truth about what was
-written; this is the record of what the run did about it.
+`content_limit=0` records the size and the shape and none of the content. That
+is the setting for a deployment whose contributions carry something that may not
+leave the process.
 
 ## Events can be dropped, and the count is the only evidence
 
@@ -38,7 +32,13 @@ run being stalled, because telemetry that stalls a run has done more damage than
 the telemetry was worth.
 
 `Xray.dropped` counts them and `on_drop` is called with each batch and its
-reason. A dropped event leaves a hole that nothing repairs.
+reason.
+
+A dropped event leaves a hole that nothing repairs. The platform holds no
+connection to your store and does not read the board, so it cannot backfill
+from a record that is still sitting there. That is worth knowing because the
+opposite is a reasonable assumption: the board is durable, and filling a gap
+from it would be possible for a platform built to do it. This one is not.
 
 ## A run's timeline is in arrival order, not sequence order
 

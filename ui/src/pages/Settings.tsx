@@ -102,18 +102,16 @@ export function Settings() {
             deployment is sending. Reading is open to whoever can reach the
             server. Put it behind whatever already fronts your internal tools.
           </Limit>
-          <Limit label="It does not store contributions by default">
-            A write records the size and the shape of its content and none of
-            the content. A deployment whose contributions are not sensitive
-            opts in by passing `content_limit`.
+          <Limit label="A contribution is truncated past 4kB">
+            Content is recorded. `content_limit` bounds one contribution and
+            anything past it is truncated. Passing zero records the size and
+            the shape and none of the content, for a deployment whose
+            contributions may not leave the process.
           </Limit>
-          <Limit label="It does not read your board">
-            Everything here arrived because an application sent it. The platform
-            holds no connection to your store and cannot fill a gap left by
-            events that were dropped.
-          </Limit>
-          <Limit label="It does not write to a run">
-            There is no control here. It reads.
+          <Limit label="A dropped event leaves a hole nothing repairs">
+            The sender's queue is bounded, so a platform that is down loses
+            events rather than stalling a run. Nothing backfills them from your
+            store afterwards.
           </Limit>
         </dl>
       </section>

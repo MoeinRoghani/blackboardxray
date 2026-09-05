@@ -29,9 +29,10 @@ An agent deployed as its own service wraps its board instead:
 
     board = xray.agent_board(BoardClient(base_url=..., board_id=..., agent="ocp"))
 
-What is recorded of a contribution is its size and its shape. Passing
-``content_limit`` carries the content itself, up to that many bytes, for a
-deployment whose contributions are not sensitive.
+A contribution's content is recorded, truncated past
+``DEFAULT_CONTENT_LIMIT`` bytes. A deployment whose contributions may not
+leave the process passes ``content_limit=0``, which records the size and the
+shape and none of the content.
 """
 
 from __future__ import annotations
@@ -73,6 +74,13 @@ ENDPOINT_VARIABLE = "BLACKBOARDXRAY_ENDPOINT"
 TOKEN_VARIABLE = "BLACKBOARDXRAY_TOKEN"
 CONTENT_LIMIT_VARIABLE = "BLACKBOARDXRAY_CONTENT_LIMIT"
 
+#: How much of a contribution is carried when the caller names no limit.
+#:
+#: Content is recorded, because a platform that shows an operator the size of a
+#: finding and not the finding has answered the wrong question. The limit
+#: bounds one contribution rather than deciding whether to keep any.
+DEFAULT_CONTENT_LIMIT = 4096
+
 
 class Xray:
     """The platform, as an application reaches it.
@@ -81,11 +89,14 @@ class Xray:
     one worker, so opening a thousand boards costs one thread rather than a
     thousand.
 
-    ``content_limit`` decides what is kept of a contribution. Zero, the
-    default, records its size and its shape and none of its content, because a
-    contribution is the application's own data and the platform should not be
-    the reason it leaves the process. A positive number carries the content up
-    to that many bytes.
+    ``content_limit`` bounds what is kept of one contribution, and defaults to
+    :data:`DEFAULT_CONTENT_LIMIT` bytes. Content past it is truncated and the
+    record says so.
+
+    Passing ``0`` records a contribution's size and its shape and none of its
+    content. That is the setting for a deployment whose contributions carry
+    something that may not leave the process, and it is a decision about your
+    data rather than one this platform should make for you.
     """
 
     def __init__(
@@ -93,7 +104,7 @@ class Xray:
         *,
         endpoint: str,
         token: str,
-        content_limit: int = 0,
+        content_limit: int = DEFAULT_CONTENT_LIMIT,
         transport: Transport | None = None,
         on_drop: Callable[[Dropped], None] | None = None,
         **sender_options: Any,
@@ -136,7 +147,9 @@ class Xray:
             )
         limit = options.pop("content_limit", None)
         if limit is None:
-            limit = _whole(os.environ.get(CONTENT_LIMIT_VARIABLE), 0)
+            limit = _whole(
+                os.environ.get(CONTENT_LIMIT_VARIABLE), DEFAULT_CONTENT_LIMIT
+            )
         return cls(endpoint=endpoint, token=token, content_limit=limit, **options)
 
     @property
@@ -403,23 +416,33 @@ class Xray:
         )
 
     def _record_closed(self, board_id: str, outcome: RunOutcome) -> None:
-        """Records the outcome once, whichever path learned it first."""
+        """Records the outcome once, whichever path learned it first.
+
+        The queueing happens under the lock rather than after it. Marking the
+        board first and queueing second leaves a window where a second caller
+        finds it already marked and returns, while the first has not queued
+        yet, so a flush between the two sends nothing and the close event is
+        lost. Queueing never blocks, so holding the lock across it costs
+        nothing.
+        """
         with self._closed_lock:
             if board_id in self._closed:
                 return
             self._closed.add(board_id)
-        named = type(outcome).__name__
-        self._sender.record(
-            Event(
-                board_id=board_id,
-                kind=EventKind.RUN_CLOSED,
-                body={
-                    "outcome": _OUTCOMES.get(named, named.lower()),
-                    "reason": getattr(outcome, "reason", None),
-                    "unfinished": sorted(getattr(outcome, "unfinished", frozenset())),
-                },
+            named = type(outcome).__name__
+            self._sender.record(
+                Event(
+                    board_id=board_id,
+                    kind=EventKind.RUN_CLOSED,
+                    body={
+                        "outcome": _OUTCOMES.get(named, named.lower()),
+                        "reason": getattr(outcome, "reason", None),
+                        "unfinished": sorted(
+                            getattr(outcome, "unfinished", frozenset())
+                        ),
+                    },
+                )
             )
-        )
 
 
 #: What each outcome is called on the wire, matching the store's own names.

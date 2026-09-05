@@ -72,8 +72,9 @@ Ten kinds, in the blackboard's own vocabulary.
 | `notification.failed` | Delivery raised, so the agent never received it |
 | `run.closed` | The run closed, with its outcome and who did not finish |
 
-A contribution's content is not sent. Its size and its shape are. A deployment
-whose contributions are not sensitive opts in with `content_limit`.
+A contribution's content is recorded, truncated past 4kB. A deployment whose
+contributions may not leave the process passes `content_limit=0`, which records
+the size and the shape and none of the content.
 
 ## License
 

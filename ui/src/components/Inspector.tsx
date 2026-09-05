@@ -211,10 +211,9 @@ function Body({ event }: { event: RunEvent }) {
 /**
  * What was kept of a contribution.
  *
- * The default is the size and the shape and nothing else, because a
- * contribution is the application's own data and this platform should not be
- * the reason it leaves the process. Where a deployment opted in, the content
- * is here.
+ * Content is recorded by default and truncated past the sender's limit. A
+ * deployment whose contributions may not leave the process sends none, and
+ * then the size and the shape are the whole record.
  */
 function Content({ carried }: { carried: Carried }) {
   return (
@@ -233,7 +232,8 @@ function Content({ carried }: { carried: Carried }) {
         </pre>
       ) : (
         <p className="type-caption mt-1 text-text-secondary">
-          Content was not sent. Pass `content_limit` to carry it.
+          This deployment sends no content, so the size and the shape above are
+          the whole record of it.
         </p>
       )}
     </Field>
