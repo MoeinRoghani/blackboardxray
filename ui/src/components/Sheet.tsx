@@ -99,7 +99,7 @@ export function Sheet({
           : undefined
       }
       className={cn(
-        "sheet move-sheet absolute inset-y-0 right-0 z-10 flex w-full flex-col",
+        "sheet move-sheet absolute inset-y-0 right-0 z-40 flex w-full flex-col",
         "rounded-l-lg sm:w-sheet",
         offscreen && "translate-x-full",
         !offscreen && behind && "-translate-x-sheet-peek opacity-0 sm:opacity-100",

@@ -11,7 +11,7 @@ for (const theme of ["dark", "light"]) {
     page.on("console", m => { if (m.type()==="error") problems.push(`console ${theme}/${vp.n}: ${m.text()}`); });
     page.on("pageerror", e => problems.push(`pageerror ${theme}/${vp.n}: ${e.message}`));
     const shots = [
-      ["canvas", "/", "text=Choose a run"],
+      ["canvas", "/", "text=How runs are ending"],
       ["run", "/r/incident-4473", "text=Everything"],
       ["layer", "/r/incident-4473/e/70", null],
       ["stack", "/r/incident-4473/e/70/a/ocp", null],

@@ -6,19 +6,17 @@
  * the canvas recedes behind them, so an operator three deep on an agent can
  * still see the run they came from and get back with one gesture.
  */
-import { Activity } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Chrome } from "@/components/Chrome";
 import { CommandPalette } from "@/components/CommandPalette";
 import { RunList } from "@/components/RunList";
+import { Overview } from "@/components/Overview";
 import { RunPane } from "@/components/RunPane";
-import { EmptyState } from "@/components/States";
 import { AgentSheet, EventSheet, SettingsSheet } from "@/components/sheets";
 import { useOverview, useRuns } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { KIND_LABEL, type RunEvent } from "@/lib/events";
 import { useLayers, type Layer } from "@/lib/layers";
-import { count } from "@/lib/format";
 
 export function App() {
   const { boardId, layers, isClosing, push, pop, openRun } = useLayers();
@@ -54,13 +52,11 @@ export function App() {
 
   return (
     <div className="relative h-dvh overflow-hidden bg-canvas">
-      <div
-        aria-hidden={stacked}
-        className={cn(
-          "move-canvas flex h-full flex-col bg-canvas",
-          stacked && "recede"
-        )}
-      >
+      {/* The canvas does not move when a layer opens. Scaling it back pushed
+          it away from the edges and left a band of the container showing, and
+          it took the run the reader was mid-way through reading with it. A
+          sheet arriving is not a reason to disturb what is underneath. */}
+      <div className="flex h-full flex-col bg-canvas">
         <Chrome
           outcome={outcome}
           onOutcome={setOutcome}
@@ -97,25 +93,20 @@ export function App() {
                 onBackToList={() => openRun("")}
               />
             ) : (
-              <Nothing
-                runs={overview.data?.runs ?? 0}
-                needing={overview.data?.with_unfinished ?? 0}
-                failed={overview.data?.failed ?? 0}
-              />
+              <Overview onRun={openRun} onAgent={onAgent} onFilter={setOutcome} />
             )}
           </main>
         </div>
       </div>
 
+      {/* A click-catcher rather than a scrim: clicking the canvas dismisses the
+          stack, and the canvas stays fully lit while it does. */}
       {stacked ? (
         <button
           type="button"
           aria-label="Close"
           onClick={() => pop(layers.length)}
-          className={cn(
-            "scrim-in absolute inset-0 z-0 cursor-default bg-canvas/45",
-            isClosing && "opacity-0"
-          )}
+          className="absolute inset-0 z-30 cursor-default"
         />
       ) : null}
 
@@ -207,59 +198,4 @@ function key(layer: Layer, index: number): string {
   if (layer.kind === "event") return `e${layer.eventId}-${index}`;
   if (layer.kind === "agent") return `a${layer.name}-${index}`;
   return `s${index}`;
-}
-
-/** What fills the pane before a run is chosen. */
-function Nothing({
-  runs,
-  needing,
-  failed,
-}: {
-  runs: number;
-  needing: number;
-  failed: number;
-}) {
-  if (runs === 0) {
-    return (
-      <div className="mx-auto max-w-2xl p-8">
-        <EmptyState
-          icon={Activity}
-          title="Nothing has been observed yet"
-          command={`export BLACKBOARDXRAY_ENDPOINT=http://localhost:8900\nexport BLACKBOARDXRAY_TOKEN=bxr_...\n\nfrom blackboardxray import Xray\nxray = Xray.from_env()\nmodel = xray.create_model(board_id=..., store=..., regions=..., premises=..., limits=...)`}
-        >
-          Point an application at this endpoint with a token and the runs it
-          opens appear on the left. The library is not modified: Xray.create_model
-          takes the arguments blackboard.create_model takes and returns the model
-          it returns.
-        </EmptyState>
-      </div>
-    );
-  }
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-      <p className="type-title">Choose a run</p>
-      <p className="max-w-sm type-small text-text-2">
-        {needing || failed ? (
-          <>
-            <span className="text-bad">
-              {count(needing)} {needing === 1 ? "run" : "runs"} left an agent
-              unfinished
-            </span>
-            {failed ? (
-              <span className="text-bad">
-                {" "}
-                and {count(failed)} notifications never arrived
-              </span>
-            ) : null}
-            . They are marked in the list.
-          </>
-        ) : (
-          <>
-            Nothing recent left an agent unfinished. Pick a run on the left, or
-            press ⌘K to search.
-          </>
-        )}
-      </p>
-    </div>
-  );
 }

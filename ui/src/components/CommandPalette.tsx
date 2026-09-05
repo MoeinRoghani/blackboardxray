@@ -97,7 +97,7 @@ export function CommandPalette({
 
   return (
     <div
-      className="scrim-in fixed inset-0 z-40 flex justify-center bg-canvas/60 px-4 pt-palette-top backdrop-blur-sm"
+      className="scrim-in fixed inset-0 z-50 flex justify-center bg-canvas/60 px-4 pt-palette-top backdrop-blur-sm"
       onClick={onClose}
       role="presentation"
     >

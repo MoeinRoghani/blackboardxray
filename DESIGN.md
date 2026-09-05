@@ -59,18 +59,19 @@ Three planes and two rules, and the rest is derived.
   surface catches light, over a shadow with both offset and blur.
 - **A sheet** adds an inset edge on its leading side. That edge is the whole
   reason a stack of two reads as a stack.
-- **The canvas recedes** behind a layer: scaled to 94% with its corners
-  rounded, desaturated and dimmed. It does not translate, because sliding it
-  by the amount the scale insets it puts the edge back at zero and the inset is
-  the entire signal.
+- **The canvas does not move** when a layer opens. It was scaled back at first,
+  which pushed it off the edges and left a band of the container showing above
+  it, and it took the run the reader was mid-way through with it. A sheet
+  arriving is not a reason to disturb what is underneath. Depth comes from the
+  sheet's own inset edge and shadow, and the canvas stays fully lit and
+  readable behind it.
 
 ## Motion
 
 | Movement | Duration | Reason |
 | --- | --- | --- |
 | Sheet in and out | 420ms, iOS sheet curve | The layer arrives from where back will send it |
-| Canvas recede | 420ms, same curve | It moves with the sheet, not after it |
-| Scrim | 260ms | The canvas becomes unavailable |
+| Layer behind slides back | 420ms, same curve | Two sheets read as a stack |
 | Panel rise | 260ms | Something new is present |
 | Hover and state | 120ms | Feedback |
 | Open-run pulse | 2.2s loop | This run is still going |
@@ -120,6 +121,30 @@ Five, all in CI. A screen cannot make a decision the system did not.
 | `npm run typecheck` | A body field read off the wrong event kind |
 | `impeccable detect` | The mechanical design defects |
 | `pytest tests/test_wire_mirror.py` | A kind named in Python and forgotten in TypeScript |
+
+## Charts
+
+Four forms, chosen before any colour, and two things that are deliberately not
+charts: runs needing attention is one number, and write outcomes are six
+figures whose story is the three exceptions.
+
+**A stacked outcome bar was built and thrown away.** The palette validator
+failed it: green, amber and red cannot be separated under protan vision at any
+step, which is why status colour is *reserved* and must ship with a word. A
+stacked bar forces those hues to behave categorically. Four labelled rows, one
+state each, means colour never has to do the telling and the form works at six
+runs or six thousand.
+
+Marks follow the fixed specs: thin, a 4px rounded data-end square at the
+baseline, a recessive track, no stroke drawn around a fill. Every value is
+rendered beside its bar rather than only on hover, so a row is a table row that
+happens to carry a mark and nothing is gated behind a tooltip. The homepage is
+held at reduced opacity while refetching rather than replaced by a skeleton, so
+nothing jumps when a poll lands.
+
+An agent's response time is scaled in seconds, not rounded milliseconds:
+answering in 600 microseconds is a real magnitude and rounding it to zero threw
+the comparison away. An agent that never answered reads "never", not "0".
 
 ## What the verification pass found
 

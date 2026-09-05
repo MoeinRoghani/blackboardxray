@@ -27,6 +27,12 @@
     },
     "palette-top": {
       "$value": "12vh"
+    },
+    "bar-label": {
+      "$value": "112px"
+    },
+    "bar-value": {
+      "$value": "64px"
     }
   },
   "layout-compact": {

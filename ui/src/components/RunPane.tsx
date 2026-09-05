@@ -64,7 +64,7 @@ export function RunPane({
   if (run.isError) return <ErrorState error={run.error} className="m-6" />;
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-5 py-6 sm:px-8">
+    <div className="w-full px-4 py-5 sm:px-6">
       {run.isLoading || !run.data ? (
         <div className="flex flex-col gap-3">
           <Skeleton className="h-7 w-64" />

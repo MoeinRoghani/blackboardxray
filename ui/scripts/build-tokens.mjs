@@ -193,6 +193,8 @@ theme.push("  --container-sheet: var(--layout-sheet-width);");
 theme.push("  --spacing-sheet-peek: var(--layout-sheet-peek);");
 theme.push("  --spacing-chrome: var(--layout-chrome-height);");
 theme.push("  --spacing-palette-top: var(--layout-palette-top);");
+theme.push("  --spacing-bar-value: var(--layout-bar-value);");
+theme.push("  --container-bar-label: var(--layout-bar-label);");
 theme.push("");
 // A breakpoint is emitted as its literal value, not as a var() reference.
 // A media query cannot resolve a custom property, so `@media (width >=
