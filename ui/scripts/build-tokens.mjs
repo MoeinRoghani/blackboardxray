@@ -15,10 +15,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 const read = (p) => JSON.parse(readFileSync(join(root, p), "utf8"));
 
-// Graphite. A pure neutral ground, because a colour cast in the surfaces is a
-// brand accent smuggled in; chroma here only ever carries state. Blue marks
-// what is live and what is selected, which is one meaning and not two.
-const HUES = ["gray", "blue", "grass", "amber", "red"];
+// Graphite, on a cool-cast neutral rather than a dead one. At these values the
+// cast is invisible as colour and entirely visible as intent: a pure #808080
+// ramp reads as an absence of a decision. Chroma still only ever carries state.
+const HUES = ["slate", "blue", "grass", "amber", "red"];
 
 function generateColorPrimitives() {
   const out = {

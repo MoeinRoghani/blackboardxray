@@ -74,10 +74,12 @@ function ratio(fg, bg) {
 // the meaning. A focus ring has no such companion and is held to 3:1.
 const PAIRS = [
   ["text", "canvas", 4.5],
+  ["text", "sidebar", 4.5],
   ["text", "surface", 4.5],
   ["text", "surface-2", 4.5],
   ["text", "sheet", 4.5],
   ["text-2", "canvas", 4.5],
+  ["text-2", "sidebar", 4.5],
   ["text-2", "surface", 4.5],
   ["text-2", "surface-2", 4.5],
   ["text-2", "sheet", 4.5],
@@ -96,6 +98,7 @@ const PAIRS = [
   // A focus ring is the only thing a keyboard user has to find their place,
   // so it is held to the boundary floor on every plane it can land on.
   ["focus", "canvas", 3],
+  ["focus", "sidebar", 3],
   ["focus", "surface", 3],
   ["focus", "surface-2", 3],
   ["focus", "sheet", 3],

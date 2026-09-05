@@ -12,10 +12,10 @@
       "$value": "180ms"
     },
     "panel": {
-      "$value": "260ms"
+      "$value": "180ms"
     },
     "sheet": {
-      "$value": "420ms"
+      "$value": "220ms"
     }
   },
   "easing": {

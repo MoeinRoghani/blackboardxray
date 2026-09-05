@@ -19,6 +19,15 @@ export type Layer =
 export interface Place {
   /** The run the canvas is showing, if any. */
   boardId: string | null;
+  /**
+   * Whether the overview is the thing being shown.
+   *
+   * Below the two-pane breakpoint the sidebar is the whole screen, so "no run
+   * selected" cannot also mean "showing the overview": that laid the overview
+   * out in a column of zero width and put every character of it off-screen.
+   * The overview is its own place, and on a phone it replaces the list.
+   */
+  overview: boolean;
   /** What is stacked over it, nearest last. */
   layers: Layer[];
 }
@@ -34,11 +43,15 @@ export const MAX_DEPTH = 3;
 
 export function readPlace(pathname: string): Place {
   const parts = pathname.split("/").filter(Boolean).map(decodeURIComponent);
-  const place: Place = { boardId: null, layers: [] };
+  const place: Place = { boardId: null, overview: false, layers: [] };
   let at = 0;
   if (parts[at] === "settings") {
     place.layers.push({ kind: "settings" });
     return place;
+  }
+  if (parts[at] === "overview") {
+    place.overview = true;
+    at += 1;
   }
   if (parts[at] === "r" && parts[at + 1]) {
     place.boardId = parts[at + 1];
@@ -62,6 +75,7 @@ export function readPlace(pathname: string): Place {
 export function writePlace(place: Place): string {
   const parts: string[] = [];
   if (place.layers[0]?.kind === "settings") return "/settings";
+  if (place.overview) parts.push("overview");
   if (place.boardId) parts.push("r", encodeURIComponent(place.boardId));
   for (const layer of place.layers) {
     if (layer.kind === "event") parts.push("e", String(layer.eventId));
@@ -125,6 +139,7 @@ export function useLayers() {
       if (!current.layers.length) return;
       const next: Place = {
         boardId: current.boardId,
+        overview: current.overview,
         layers: current.layers.slice(0, Math.max(0, current.layers.length - to)),
       };
       setClosing(current.layers);
@@ -138,18 +153,31 @@ export function useLayers() {
   );
 
   const openRun = useCallback(
-    // An empty identifier means the canvas with nothing selected, which is
-    // what going back to the list is below the two-pane breakpoint.
-    (boardId: string) => navigate(writePlace({ boardId: boardId || null, layers: [] })),
+    (boardId: string) =>
+      navigate(writePlace({ boardId: boardId || null, overview: false, layers: [] })),
+    [navigate]
+  );
+
+  const openOverview = useCallback(
+    () => navigate(writePlace({ boardId: null, overview: true, layers: [] })),
+    [navigate]
+  );
+
+  /** Back to the bare list. On a phone that is the whole screen. */
+  const openList = useCallback(
+    () => navigate(writePlace({ boardId: null, overview: false, layers: [] })),
     [navigate]
   );
 
   return {
     boardId: place.boardId,
+    overview: place.overview,
     layers: closing ?? place.layers,
     isClosing: closing !== null,
     push,
     pop,
     openRun,
+    openOverview,
+    openList,
   };
 }

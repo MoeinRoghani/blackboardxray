@@ -1,17 +1,18 @@
 /**
  * The canvas, and whatever is stacked over it.
  *
- * The canvas is one element that never unmounts: the runs list and the
- * selected run live in it for the whole session. Layers are pushed over it and
- * the canvas recedes behind them, so an operator three deep on an agent can
- * still see the run they came from and get back with one gesture.
+ * Three places, not two: the list, the overview, and a run. Below the two-pane
+ * breakpoint the sidebar is the whole screen, so "no run selected" cannot also
+ * mean "showing the overview" — that laid the overview out in a column of zero
+ * width and put all of it off-screen. The overview is its own place and on a
+ * phone it replaces the list.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Chrome } from "@/components/Chrome";
 import { CommandPalette } from "@/components/CommandPalette";
-import { RunList } from "@/components/RunList";
 import { Overview } from "@/components/Overview";
 import { RunPane } from "@/components/RunPane";
+import { Sidebar } from "@/components/Sidebar";
 import { AgentSheet, EventSheet, SettingsSheet } from "@/components/sheets";
 import { useOverview, useRuns } from "@/lib/api";
 import { cn } from "@/lib/cn";
@@ -19,15 +20,29 @@ import { KIND_LABEL, type RunEvent } from "@/lib/events";
 import { useLayers, type Layer } from "@/lib/layers";
 
 export function App() {
-  const { boardId, layers, isClosing, push, pop, openRun } = useLayers();
+  const {
+    boardId,
+    overview: atOverview,
+    layers,
+    isClosing,
+    push,
+    pop,
+    openRun,
+    openOverview,
+    openList,
+  } = useLayers();
   const [outcome, setOutcome] = useState("");
+  const [term, setTerm] = useState("");
   const [palette, setPalette] = useState(false);
 
-  const runs = useRuns(useMemo(() => ({ outcome: outcome || undefined, limit: 100 }), [outcome]));
-  const overview = useOverview();
+  const runs = useRuns(
+    useMemo(
+      () => ({ outcome: outcome || undefined, search: term || undefined, limit: 100 }),
+      [outcome, term]
+    )
+  );
+  const totals = useOverview();
 
-  // The command key with K is the way into search from anywhere, including
-  // from inside a layer.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -44,67 +59,85 @@ export function App() {
     [push]
   );
   const onAgent = useCallback(
-    (name: string) => name && push({ kind: "agent", name }),
+    (name: string) => {
+      if (name) push({ kind: "agent", name });
+    },
     [push]
   );
 
   const stacked = layers.length > 0;
+  const openEventId =
+    layers.length && layers[layers.length - 1].kind === "event"
+      ? (layers[layers.length - 1] as { eventId: number }).eventId
+      : null;
+  // On a phone one place owns the screen. On a laptop the sidebar is always up.
+  const paneShowing = Boolean(boardId) || atOverview;
 
   return (
     <div className="relative h-dvh overflow-hidden bg-canvas">
-      {/* The canvas does not move when a layer opens. Scaling it back pushed
-          it away from the edges and left a band of the container showing, and
-          it took the run the reader was mid-way through reading with it. A
-          sheet arriving is not a reason to disturb what is underneath. */}
-      <div className="flex h-full flex-col bg-canvas">
+      <div className="flex h-full flex-col" inert={stacked || undefined}>
         <Chrome
-          outcome={outcome}
-          onOutcome={setOutcome}
-          onSearch={() => setPalette(true)}
           onSettings={() => push({ kind: "settings" })}
-          project={overview.data?.project}
-          total={overview.data?.runs}
+          project={totals.data?.project}
+          runs={totals.data?.runs}
         />
 
         <div className="flex min-h-0 flex-1">
           <aside
             className={cn(
-              "w-full shrink-0 border-r border-hairline bg-surface",
-              "md:w-list",
-              boardId && "max-md:hidden"
+              "shrink-0 border-r border-hairline",
+              "w-full md:w-list",
+              paneShowing && "max-md:hidden"
             )}
           >
-            <RunList
+            <Sidebar
               runs={runs.data?.runs ?? []}
               selected={boardId}
+              onOverview={openOverview}
+              atOverview={atOverview}
+              needsAttention={totals.data?.with_unfinished ?? 0}
               loading={runs.isLoading}
               error={runs.isError ? runs.error : null}
-              filtered={Boolean(outcome)}
+              outcome={outcome}
+              onOutcome={setOutcome}
+              term={term}
+              onTerm={setTerm}
               onSelect={openRun}
             />
           </aside>
 
-          <main className="min-w-0 flex-1 overflow-y-auto">
+          <main
+            className={cn(
+              "min-w-0 flex-1 overflow-y-auto",
+              !paneShowing && "max-md:hidden"
+            )}
+          >
             {boardId ? (
               <RunPane
                 boardId={boardId}
+                openEventId={openEventId}
                 onEvent={onEvent}
                 onAgent={onAgent}
-                onBackToList={() => openRun("")}
+                onBackToList={openList}
               />
             ) : (
-              <Overview onRun={openRun} onAgent={onAgent} onFilter={setOutcome} />
+              <Overview
+                onRun={openRun}
+                onAgent={onAgent}
+                onFilter={setOutcome}
+                onBackToList={openList}
+              />
             )}
           </main>
         </div>
       </div>
 
-      {/* A click-catcher rather than a scrim: clicking the canvas dismisses the
-          stack, and the canvas stays fully lit while it does. */}
+      {/* A click-catcher, not a control. It carries no accessible name and is
+          not in the tab order: it was one full-viewport tab stop. Escape and
+          the sheet's own back control are the keyboard routes out. */}
       {stacked ? (
-        <button
-          type="button"
-          aria-label="Close"
+        <div
+          aria-hidden
           onClick={() => pop(layers.length)}
           className="absolute inset-0 z-30 cursor-default"
         />
@@ -188,9 +221,9 @@ function LayerBody({
 /** A back control names what it returns to, so it is never a bare arrow. */
 function backLabel(layers: Layer[], index: number, boardId: string | null): string {
   const under = layers[index - 1];
-  if (!under) return boardId ?? "Runs";
+  if (!under) return boardId ?? "Overview";
   if (under.kind === "agent") return under.name;
-  if (under.kind === "settings") return "Runs";
+  if (under.kind === "settings") return "Overview";
   return KIND_LABEL["write.admitted"];
 }
 

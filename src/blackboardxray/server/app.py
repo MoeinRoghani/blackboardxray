@@ -19,6 +19,7 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -51,6 +52,11 @@ def build(settings: Settings, database: Database | None = None) -> FastAPI:
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",
     )
+    # The interface is a third of a megabyte of JavaScript and stylesheet, and
+    # it was going over the wire uncompressed. Text compresses to roughly a
+    # third, and the platform is often reached over a link an operator is
+    # sharing with everything else during an incident.
+    app.add_middleware(GZipMiddleware, minimum_size=1024)
     if settings.allowed_origins:
         app.add_middleware(
             CORSMiddleware,

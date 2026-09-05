@@ -88,3 +88,21 @@ export function bytes(value: number | null | undefined): string {
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} kB`;
   return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
+
+/**
+ * How far into the run an event happened.
+ *
+ * A run's events are printed with an absolute clock in the old build, which
+ * gave thirty-odd rows reading 11:24:47.73x and differing in one digit. The
+ * absolute instant is in the run header three lines above; what a row wants is
+ * its distance from the start.
+ */
+export function since(opened: string | null | undefined, at: string): string {
+  if (!opened) return clock(at);
+  const seconds = (Date.parse(at) - Date.parse(opened)) / 1000;
+  if (!Number.isFinite(seconds)) return clock(at);
+  if (seconds < 0) return "before open";
+  if (seconds < 1) return `+${Math.round(seconds * 1000)}ms`;
+  if (seconds < 60) return `+${seconds.toFixed(seconds < 10 ? 2 : 1)}s`;
+  return `+${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+}

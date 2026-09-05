@@ -1,38 +1,41 @@
 {
-  "$description": "Stage 8. Named by job. Theming re-points this file alone.\nState follows one rule with no per-hue exceptions: the word is step 12, which clears AA on every plane it can land on, and the dot beside it is step 9, which carries the hue. There is no filled accent button, because a tool that only reads has no primary action to fill.\nThe dark theme is a second scale, not an inversion.",
+  "$description": "Stage 8. Named by job. Four planes, not two: the sidebar is its own neutral layer, which is what an Operate surface owes a navigation column. The planes are three Radix steps apart rather than one, because at one step a dark theme is a single flat sheet whose only boundaries are hairlines.",
   "color": {
+    "sidebar": {
+      "$value": "{slateDark.1}"
+    },
     "canvas": {
-      "$value": "{grayDark.1}"
+      "$value": "{slateDark.2}"
     },
     "surface": {
-      "$value": "{grayDark.2}"
+      "$value": "{slateDark.3}"
     },
     "surface-2": {
-      "$value": "{grayDark.3}"
-    },
-    "hover": {
-      "$value": "{grayDarkA.3}"
-    },
-    "active": {
-      "$value": "{grayDarkA.4}"
+      "$value": "{slateDark.4}"
     },
     "sheet": {
-      "$value": "{grayDark.2}"
+      "$value": "{slateDark.3}"
+    },
+    "hover": {
+      "$value": "{slateDarkA.3}"
+    },
+    "active": {
+      "$value": "{slateDarkA.5}"
     },
     "hairline": {
-      "$value": "{grayDarkA.5}"
+      "$value": "{slateDarkA.6}"
     },
     "edge": {
-      "$value": "{grayDarkA.7}"
+      "$value": "{slateDarkA.8}"
     },
     "edge-strong": {
-      "$value": "{grayDarkA.9}"
+      "$value": "{slateDarkA.10}"
     },
     "text": {
-      "$value": "{grayDark.12}"
+      "$value": "{slateDark.12}"
     },
     "text-2": {
-      "$value": "{grayDark.11}"
+      "$value": "{slateDark.11}"
     },
     "live": {
       "$value": "{blueDark.12}"

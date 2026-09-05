@@ -50,11 +50,41 @@ export function Sheet({
   }, []);
 
   useEffect(() => {
+    // Move focus into the layer that just arrived. Without this the reader's
+    // focus stays on the row behind, and the next Tab walks the whole canvas
+    // rather than the thing they just opened.
+    if (depth !== 0) return;
+    const first = element.current?.querySelector<HTMLElement>(
+      'button, a[href], input, [tabindex]:not([tabindex="-1"])'
+    );
+    first?.focus();
+  }, [depth]);
+
+  useEffect(() => {
     if (depth !== 0) return;
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
         onBack();
+        return;
+      }
+      // Inerting the canvas stops focus reaching what is behind, but it does
+      // not stop it walking out into the browser's own chrome and back in at
+      // the top. A layer that is modal owns the cycle, so the ends are joined.
+      if (event.key !== "Tab") return;
+      const within = element.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (!within || within.length === 0) return;
+      const first = within[0];
+      const last = within[within.length - 1];
+      const on = document.activeElement;
+      if (!event.shiftKey && (on === last || !element.current?.contains(on))) {
+        event.preventDefault();
+        first.focus();
+      } else if (event.shiftKey && (on === first || !element.current?.contains(on))) {
+        event.preventDefault();
+        last.focus();
       }
     }
     window.addEventListener("keydown", onKey);
@@ -92,6 +122,7 @@ export function Sheet({
     <section
       ref={element}
       role="dialog"
+      aria-modal={depth === 0 || undefined}
       aria-label={typeof title === "string" ? title : undefined}
       style={
         drag

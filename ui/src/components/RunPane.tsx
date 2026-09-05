@@ -18,7 +18,7 @@ import {
   type EventKind,
   type RunEvent,
 } from "@/lib/events";
-import { clock, count, duration, instant } from "@/lib/format";
+import { count, duration, instant, since } from "@/lib/format";
 
 /** One control restructures the pane, rather than a row of chips that do not. */
 const REGISTERS = [
@@ -38,11 +38,14 @@ const TROUBLE: EventKind[] = [
 
 export function RunPane({
   boardId,
+  openEventId,
   onEvent,
   onAgent,
   onBackToList,
 }: {
   boardId: string;
+  /** The event a sheet is open on, so its row can mark itself. */
+  openEventId: number | null;
   onEvent: (event: RunEvent) => void;
   onAgent: (name: string) => void;
   /** Below md the list is not on screen, so the pane owes a way back to it. */
@@ -156,7 +159,13 @@ export function RunPane({
               </EmptyState>
             ) : null}
             {shown.map((event) => (
-              <EventRow key={event.id} event={event} onOpen={onEvent} />
+              <EventRow
+                key={event.id}
+                event={event}
+                openedAt={run.data?.opened_at ?? null}
+                selected={event.id === openEventId}
+                onOpen={onEvent}
+              />
             ))}
           </div>
         </>
@@ -167,9 +176,13 @@ export function RunPane({
 
 function EventRow({
   event,
+  openedAt,
+  selected,
   onOpen,
 }: {
   event: RunEvent;
+  openedAt: string | null;
+  selected: boolean;
   onOpen: (event: RunEvent) => void;
 }) {
   const landed = changedTheBoard(event);
@@ -178,15 +191,28 @@ function EventRow({
     <button
       type="button"
       onClick={() => onOpen(event)}
-      className="move-state flex w-full items-center gap-3 border-b border-hairline px-3 py-2 text-left last:border-b-0 hover:bg-hover"
+      aria-current={selected}
+      // The sheet covers part of this table, so the row it describes has to
+      // say so; otherwise the reader loses their place in thirty-odd rows
+      // every time they inspect one.
+      className={cn(
+        "move-state relative flex w-full items-center gap-3 border-b border-hairline px-3 py-2 text-left last:border-b-0",
+        selected
+          ? "bg-live-wash before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-live-solid before:content-['']"
+          : "hover:bg-hover"
+      )}
     >
+      {/* An event that took no sequence number renders an empty gutter, not a
+          transparent character. A full stop at 1:1 contrast is invisible on
+          screen and entirely present in the accessibility tree, in text
+          selection and in anything the reader copies out. */}
       <span
         className={cn(
-          "figures w-7 shrink-0 text-right type-caption",
+          "figures w-8 shrink-0 text-right type-small font-semibold",
           landed ? "text-text" : "text-transparent"
         )}
       >
-        {landed ? event.sequence : "."}
+        {landed ? event.sequence : ""}
       </span>
       <span
         className={cn(
@@ -208,9 +234,9 @@ function EventRow({
       <span className="hidden w-20 shrink-0 truncate type-caption text-text-2 md:block">
         {event.agent ?? ""}
       </span>
-      <span className="code min-w-0 flex-1 truncate text-text-2">{detail(event)}</span>
-      <span className="figures hidden shrink-0 type-caption text-text-2 lg:block">
-        {clock(event.at)}
+      <span className="code hidden min-w-0 flex-1 truncate text-text-2 lg:block">{detail(event)}</span>
+      <span className="figures hidden w-16 shrink-0 text-right type-caption text-text-2 sm:block">
+        {since(openedAt, event.at)}
       </span>
     </button>
   );

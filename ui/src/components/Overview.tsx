@@ -9,7 +9,7 @@
  * point. Write outcomes are three counts whose story is the two exceptions,
  * so they are three figures with the exceptions in their own ink.
  */
-import { ArrowRight, Activity } from "lucide-react";
+import { Activity, ArrowRight, ChevronLeft } from "lucide-react";
 import { Bar } from "@/components/Bar";
 import { RunState } from "@/components/State";
 import { Skeleton } from "@/components/Skeleton";
@@ -22,10 +22,13 @@ export function Overview({
   onRun,
   onAgent,
   onFilter,
+  onBackToList,
 }: {
   onRun: (boardId: string) => void;
   onAgent: (name: string) => void;
   onFilter: (outcome: string) => void;
+  /** Below the two-pane breakpoint the list is not on screen. */
+  onBackToList: () => void;
 }) {
   const overview = useOverview();
 
@@ -47,8 +50,10 @@ export function Overview({
   const data = overview.data;
   if (data.runs === 0) return <FirstRun />;
 
-  const needing = data.with_unfinished;
-  const wrong = needing + (data.failed > 0 ? 1 : 0);
+  const needing = data.recent.filter(
+    (run) => run.unfinished.length > 0 || run.n_failed > 0
+  );
+  const wrong = data.with_unfinished + (data.failed > 0 ? 1 : 0);
 
   return (
     // Held at reduced opacity while refetching rather than replaced by a
@@ -59,6 +64,14 @@ export function Overview({
         overview.isFetching && "opacity-70"
       )}
     >
+      <button
+        type="button"
+        onClick={onBackToList}
+        className="move-state -ml-1 -mt-1 inline-flex w-fit items-center gap-0.5 rounded-sm px-1 py-1 type-small text-live md:hidden"
+      >
+        <ChevronLeft aria-hidden className="size-3.5" />
+        Runs
+      </button>
       <Headline data={data} onFilter={onFilter} wrong={wrong} />
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -129,35 +142,52 @@ export function Overview({
         </div>
       </Panel>
 
-      <Panel title="Recent runs" note={`${count(data.recent.length)} newest`}>
-        <ul className="flex flex-col">
-          {data.recent.map((run) => (
-            <li key={run.board_id}>
-              <button
-                type="button"
-                onClick={() => onRun(run.board_id)}
-                className="move-state flex w-full items-center gap-3 rounded-sm px-1.5 py-2 text-left hover:bg-hover"
-              >
-                <span className="code w-40 shrink-0 truncate">{run.board_id}</span>
-                {run.unfinished.length ? (
-                  <span className="hidden min-w-0 flex-1 truncate type-caption text-bad sm:block">
-                    {run.unfinished.join(", ")} did not finish
+      {needing.length ? (
+        <Panel title="Where those runs stopped" note="what the sidebar cannot show">
+          <ul className="flex flex-col divide-y divide-hairline">
+            {needing.map((run) => (
+              <li key={run.board_id} className="py-2.5 first:pt-0 last:pb-0">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <button
+                    type="button"
+                    onClick={() => onRun(run.board_id)}
+                    className="code move-state rounded-sm font-medium underline-offset-2 hover:text-live hover:underline"
+                  >
+                    {run.board_id}
+                  </button>
+                  <RunState outcome={run.outcome} />
+                  <span className="figures type-caption text-text-2">
+                    {count(run.last_sequence)} on board
                   </span>
-                ) : (
-                  <span className="hidden flex-1 sm:block" />
-                )}
-                <span className="figures shrink-0 type-caption text-text-2">
-                  {count(run.last_sequence)} on board
-                </span>
-                <RunState outcome={run.outcome} />
-                <span className="hidden shrink-0 type-caption text-text-2 md:block">
-                  {ago(run.last_event_at)}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </Panel>
+                  <span className="ml-auto type-caption text-text-2">
+                    {ago(run.last_event_at)}
+                  </span>
+                </div>
+                <p className="max-w-prose pt-1 type-caption text-bad">
+                  {run.unfinished.map((name, index) => (
+                    <span key={name}>
+                      {index ? ", " : ""}
+                      <button
+                        type="button"
+                        onClick={() => onAgent(name)}
+                        className="underline underline-offset-2 hover:opacity-80"
+                      >
+                        {name}
+                      </button>
+                    </span>
+                  ))}
+                  {run.unfinished.length
+                    ? " held an unacknowledged notification when the run closed."
+                    : null}
+                  {run.n_failed
+                    ? ` ${count(run.n_failed)} never reached the agent they were for.`
+                    : null}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      ) : null}
     </div>
   );
 }
@@ -188,7 +218,7 @@ function Headline({
       {healthy ? (
         <>
           <h1 className="type-title">Nothing needs attention</h1>
-          <p className="pt-1 type-small text-text-2">
+          <p className="max-w-prose pt-1 type-small text-text-2">
             No run has left an agent unfinished and every notification arrived.{" "}
             <span className="figures">{count(data.open)}</span>{" "}
             {data.open === 1 ? "run is" : "runs are"} still open.
@@ -204,7 +234,7 @@ function Headline({
               {data.with_unfinished === 1 ? "run" : "runs"} left an agent unfinished
             </h1>
           </div>
-          <p className="pt-1.5 type-small text-bad">
+          <p className="max-w-prose pt-1.5 type-small text-bad">
             {data.failed
               ? `${count(data.failed)} notifications never reached the agent they were for. `
               : ""}
