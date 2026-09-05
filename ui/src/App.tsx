@@ -3,7 +3,7 @@
  *
  * Three places, not two: the list, the overview, and a run. Below the two-pane
  * breakpoint the sidebar is the whole screen, so "no run selected" cannot also
- * mean "showing the overview" — that laid the overview out in a column of zero
+ * mean "showing the overview": that laid the overview out in a column of zero
  * width and put all of it off-screen. The overview is its own place and on a
  * phone it replaces the list.
  */
@@ -14,7 +14,7 @@ import { Overview } from "@/components/Overview";
 import { RunPane } from "@/components/RunPane";
 import { Sidebar } from "@/components/Sidebar";
 import { AgentSheet, EventSheet, SettingsSheet } from "@/components/sheets";
-import { useOverview, useRuns } from "@/lib/api";
+import { useOverview, useRuns, useSettled } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { KIND_LABEL, type RunEvent } from "@/lib/events";
 import { useLayers, type Layer } from "@/lib/layers";
@@ -35,10 +35,15 @@ export function App() {
   const [term, setTerm] = useState("");
   const [palette, setPalette] = useState(false);
 
+  const settledTerm = useSettled(term);
   const runs = useRuns(
     useMemo(
-      () => ({ outcome: outcome || undefined, search: term || undefined, limit: 100 }),
-      [outcome, term]
+      () => ({
+        outcome: outcome || undefined,
+        search: settledTerm || undefined,
+        limit: 100,
+      }),
+      [outcome, settledTerm]
     )
   );
   const totals = useOverview();
@@ -75,6 +80,9 @@ export function App() {
 
   return (
     <div className="relative h-dvh overflow-hidden bg-canvas">
+      <a href="#content" className="skip-link type-small">
+        Skip to content
+      </a>
       <div className="flex h-full flex-col" inert={stacked || undefined}>
         <Chrome
           onSettings={() => push({ kind: "settings" })}
@@ -107,6 +115,7 @@ export function App() {
           </aside>
 
           <main
+            id="content"
             className={cn(
               "min-w-0 flex-1 overflow-y-auto",
               !paneShowing && "max-md:hidden"

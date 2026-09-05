@@ -5,6 +5,7 @@
  * that the server can answer as null is typed as null, so a screen has to
  * decide what to show instead rather than rendering the word "undefined".
  */
+import { useEffect, useState } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import type { AgentDeclaration, Outcome, RegionDeclaration, RunEvent } from "./events";
 
@@ -221,3 +222,18 @@ export function useProjects(): UseQueryResult<{ projects: Project[] }, ApiError>
 }
 
 export type { AgentDeclaration, RegionDeclaration, RunEvent };
+
+/**
+ * A value that settles before anything acts on it.
+ *
+ * Typing eight characters into the run filter fired eight requests, one per
+ * keystroke, seven of which were obsolete before they returned.
+ */
+export function useSettled<T>(value: T, delay = 250): T {
+  const [settled, setSettled] = useState(value);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettled(value), delay);
+    return () => window.clearTimeout(timer);
+  }, [value, delay]);
+  return settled;
+}

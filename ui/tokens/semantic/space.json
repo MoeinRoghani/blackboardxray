@@ -92,5 +92,10 @@
     "scrollbar-inset": {
       "$value": "{stroke.thick}"
     }
+  },
+  "target": {
+    "min": {
+      "$value": "24px"
+    }
   }
 }

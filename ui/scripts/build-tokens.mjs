@@ -194,6 +194,7 @@ theme.push("  --spacing-sheet-peek: var(--layout-sheet-peek);");
 theme.push("  --spacing-chrome: var(--layout-chrome-height);");
 theme.push("  --spacing-palette-top: var(--layout-palette-top);");
 theme.push("  --spacing-bar-value: var(--layout-bar-value);");
+theme.push("  --spacing-target: var(--target-min);");
 theme.push("  --container-bar-label: var(--layout-bar-label);");
 theme.push("");
 // A breakpoint is emitted as its literal value, not as a var() reference.

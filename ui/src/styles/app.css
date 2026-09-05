@@ -11,7 +11,30 @@
   html { color-scheme: light; }
   html[data-theme="dark"] { color-scheme: dark; }
 
+  /* Tailwind v4 dropped the browser default of a pointer over a button, so
+     every control in the product was showing an arrow. This is a property of
+     being operable, not a decision a component restates. */
+  button:not(:disabled),
+  [role="tab"]:not([aria-disabled="true"]),
+  a[href],
+  label[for],
+  summary {
+    cursor: pointer;
+  }
+
+  /* Every pointer target clears the WCAG 2.2 minimum, whatever its visible
+     box: a control smaller than this keeps its look and grows its hit area. */
+  button,
+  [role="tab"],
+  a[href],
+  input,
+  select {
+    min-height: var(--target-min);
+  }
+
   body {
+    /* Cuts the 300ms tap delay without disabling pinch zoom. */
+    touch-action: manipulation;
     background-color: var(--canvas);
     color: var(--text);
     font-family: var(--font-text);
@@ -33,6 +56,23 @@
 
   /* The browser's own surfaces belong to the design. Leaving them at the
      defaults is the cheapest tell that a page was assembled, not built. */
+  .skip-link {
+    position: absolute;
+    inset-inline-start: var(--space-2);
+    top: var(--space-2);
+    z-index: 60;
+    transform: translateY(-200%);
+    border-radius: var(--radius-sm);
+    border: var(--material-edge-weight) solid var(--edge);
+    background: var(--surface);
+    padding: var(--space-2) var(--space-3);
+    transition: transform var(--duration-state) var(--easing-standard);
+  }
+
+  .skip-link:focus-visible {
+    transform: none;
+  }
+
   :focus-visible {
     outline: var(--focus-width) solid var(--focus);
     outline-offset: var(--focus-offset);
