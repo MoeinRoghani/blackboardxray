@@ -1,0 +1,33 @@
+{
+  "$description": "The physical constants of the material system: how thick a line is, how far light spreads, how deep a plane sits. Named here so a component reads a role and never a measurement.",
+  "stroke": {
+    "$type": "dimension",
+    "hair":  { "$value": "1px" },
+    "thick": { "$value": "2px" },
+    "grab":  { "$value": "3px" }
+  },
+  "blur": {
+    "$type": "dimension",
+    "chrome": { "$value": "28px" },
+    "sheet":  { "$value": "130px" }
+  },
+  "lift": {
+    "$type": "dimension",
+    "none": { "$value": "0px" },
+    "near": { "$value": "1px" },
+    "mid":  { "$value": "12px" },
+    "far":  { "$value": "60px" }
+  },
+  "spread": {
+    "$type": "dimension",
+    "near": { "$value": "2px" },
+    "mid":  { "$value": "32px" },
+    "tuck": { "$value": "-14px" },
+    "tuck-far": { "$value": "-30px" }
+  },
+  "size": {
+    "$type": "dimension",
+    "grab-length": { "$value": "52px" },
+    "rise":        { "$value": "6px" }
+  }
+}

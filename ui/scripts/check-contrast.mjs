@@ -73,22 +73,36 @@ function ratio(fg, bg) {
 // the fill reinforces a label rather than being the only thing that carries
 // the meaning. A focus ring has no such companion and is held to 3:1.
 const PAIRS = [
-  ["text-primary", "surface-page", 4.5],
-  ["text-primary", "surface-raised", 4.5],
-  ["text-primary", "surface-sunken", 4.5],
-  ["text-secondary", "surface-page", 4.5],
-  ["text-secondary", "surface-raised", 4.5],
-  ["text-secondary", "surface-sunken", 4.5],
-  ["brand-text", "surface-page", 4.5],
-  ["brand-text", "surface-raised", 4.5],
-  ["brand-on-solid", "brand-solid", 4.5],
-  ["settled-text", "settled-bg", 4.5],
-  ["expired-text", "expired-bg", 4.5],
-  ["aborted-text", "aborted-bg", 4.5],
-  ["open-text", "open-bg", 4.5],
-  ["focus", "surface-page", 3],
-  ["focus", "surface-raised", 3],
-  ["focus", "surface-sunken", 3],
+  ["text", "canvas", 4.5],
+  ["text", "surface", 4.5],
+  ["text", "surface-2", 4.5],
+  ["text", "sheet", 4.5],
+  ["text-2", "canvas", 4.5],
+  ["text-2", "surface", 4.5],
+  ["text-2", "surface-2", 4.5],
+  ["text-2", "sheet", 4.5],
+  ["live", "canvas", 4.5],
+  ["live", "surface", 4.5],
+  ["live", "live-wash", 4.5],
+  ["ok", "canvas", 4.5],
+  ["ok", "surface", 4.5],
+  ["ok", "ok-wash", 4.5],
+  ["warn", "canvas", 4.5],
+  ["warn", "surface", 4.5],
+  ["warn", "warn-wash", 4.5],
+  ["bad", "canvas", 4.5],
+  ["bad", "surface", 4.5],
+  ["bad", "bad-wash", 4.5],
+  // A focus ring is the only thing a keyboard user has to find their place,
+  // so it is held to the boundary floor on every plane it can land on.
+  ["focus", "canvas", 3],
+  ["focus", "surface", 3],
+  ["focus", "surface-2", 3],
+  ["focus", "sheet", 3],
+  // The dot beside a state word is reinforcement, not the carrier, so it has
+  // no floor. The edge that bounds a plane does, because nothing else says
+  // where the plane stops.
+  ["edge-strong", "canvas", 3],
 ];
 
 let failed = 0;

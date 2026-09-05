@@ -1,126 +1,83 @@
 {
-  "$description": "Stage 8. The dark theme is a second scale, not an inversion. Same keys, same jobs, pointing at the Dark scales, so every component themes unchanged.",
+  "$description": "Stage 8. Named by job. Theming re-points this file alone.\nState follows one rule with no per-hue exceptions: the word is step 12, which clears AA on every plane it can land on, and the dot beside it is step 9, which carries the hue. There is no filled accent button, because a tool that only reads has no primary action to fill.\nThe dark theme is a second scale, not an inversion.",
   "color": {
-    "surface": {
-      "page": {
-        "$value": "{slateDark.1}"
-      },
-      "raised": {
-        "$value": "{slateDark.2}"
-      },
-      "sunken": {
-        "$value": "{slateDark.3}"
-      },
-      "hover": {
-        "$value": "{slateDark.3}"
-      },
-      "active": {
-        "$value": "{slateDark.4}"
-      },
-      "overlay": {
-        "$value": "{slateDarkA.11}"
-      }
+    "canvas": {
+      "$value": "{grayDark.1}"
     },
-    "border": {
-      "subtle": {
-        "$value": "{slateDark.5}"
-      },
-      "default": {
-        "$value": "{slateDark.7}"
-      },
-      "strong": {
-        "$value": "{slateDark.8}"
-      }
+    "surface": {
+      "$value": "{grayDark.2}"
+    },
+    "surface-2": {
+      "$value": "{grayDark.3}"
+    },
+    "hover": {
+      "$value": "{grayDarkA.3}"
+    },
+    "active": {
+      "$value": "{grayDarkA.4}"
+    },
+    "sheet": {
+      "$value": "{grayDark.2}"
+    },
+    "hairline": {
+      "$value": "{grayDarkA.5}"
+    },
+    "edge": {
+      "$value": "{grayDarkA.7}"
+    },
+    "edge-strong": {
+      "$value": "{grayDarkA.9}"
     },
     "text": {
-      "primary": {
-        "$value": "{slateDark.12}"
-      },
-      "secondary": {
-        "$value": "{slateDark.11}"
-      },
-      "on-solid": {
-        "$value": "{slateDark.12}"
-      }
+      "$value": "{grayDark.12}"
     },
-    "brand": {
-      "solid": {
-        "$value": "{cyanDark.9}"
-      },
-      "solid-hover": {
-        "$value": "{cyanDark.10}"
-      },
-      "text": {
-        "$value": "{cyanDark.11}"
-      },
-      "bg": {
-        "$value": "{cyanDark.3}"
-      },
-      "border": {
-        "$value": "{cyanDark.7}"
-      },
-      "on-solid": {
-        "$value": "{slateDark.1}"
-      }
+    "text-2": {
+      "$value": "{grayDark.11}"
+    },
+    "live": {
+      "$value": "{blueDark.12}"
+    },
+    "live-solid": {
+      "$value": "{blueDark.9}"
+    },
+    "live-wash": {
+      "$value": "{blueDark.3}"
+    },
+    "live-edge": {
+      "$value": "{blueDark.7}"
+    },
+    "ok": {
+      "$value": "{grassDark.12}"
+    },
+    "ok-solid": {
+      "$value": "{grassDark.9}"
+    },
+    "ok-wash": {
+      "$value": "{grassDark.3}"
+    },
+    "warn": {
+      "$value": "{amberDark.12}"
+    },
+    "warn-solid": {
+      "$value": "{amberDark.9}"
+    },
+    "warn-wash": {
+      "$value": "{amberDark.3}"
+    },
+    "bad": {
+      "$value": "{redDark.12}"
+    },
+    "bad-solid": {
+      "$value": "{redDark.9}"
+    },
+    "bad-wash": {
+      "$value": "{redDark.3}"
+    },
+    "bad-edge": {
+      "$value": "{redDark.7}"
     },
     "focus": {
-      "$value": "{cyanDark.11}"
-    },
-    "settled": {
-      "text": {
-        "$value": "{greenDark.12}"
-      },
-      "bg": {
-        "$value": "{greenDark.3}"
-      },
-      "border": {
-        "$value": "{greenDark.6}"
-      },
-      "solid": {
-        "$value": "{greenDark.9}"
-      }
-    },
-    "expired": {
-      "text": {
-        "$value": "{amberDark.12}"
-      },
-      "bg": {
-        "$value": "{amberDark.3}"
-      },
-      "border": {
-        "$value": "{amberDark.6}"
-      },
-      "solid": {
-        "$value": "{amberDark.9}"
-      }
-    },
-    "aborted": {
-      "text": {
-        "$value": "{redDark.12}"
-      },
-      "bg": {
-        "$value": "{redDark.3}"
-      },
-      "border": {
-        "$value": "{redDark.6}"
-      },
-      "solid": {
-        "$value": "{redDark.9}"
-      }
-    },
-    "open": {
-      "text": {
-        "$value": "{cyanDark.12}"
-      },
-      "bg": {
-        "$value": "{cyanDark.3}"
-      },
-      "border": {
-        "$value": "{cyanDark.6}"
-      },
-      "solid": {
-        "$value": "{cyanDark.9}"
-      }
+      "$value": "{blueDark.11}"
     }
   }
 }

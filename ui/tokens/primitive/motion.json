@@ -1,16 +1,40 @@
 {
-  "$description": "Stage 7. Duration scales with the moving element. Exits are shorter than entrances. Every one of these has a reduced-motion pair in tokens.css.",
+  "$description": "Stage 7. Duration scales with how far a thing travels. A sheet crossing the viewport is slow; a hover is nearly instant. Every one of these has a reduced-motion pair the token build writes.",
   "duration": {
     "$type": "duration",
-    "instant": { "$value": "0ms" },
-    "fast":    { "$value": "120ms" },
-    "base":    { "$value": "180ms" },
-    "slow":    { "$value": "260ms" }
+    "instant": {
+      "$value": "0ms"
+    },
+    "hover": {
+      "$value": "120ms"
+    },
+    "state": {
+      "$value": "180ms"
+    },
+    "panel": {
+      "$value": "260ms"
+    },
+    "sheet": {
+      "$value": "420ms"
+    }
   },
   "easing": {
     "$type": "cubicBezier",
-    "standard": { "$value": "cubic-bezier(0.2, 0, 0, 1)" },
-    "enter":    { "$value": "cubic-bezier(0, 0, 0, 1)" },
-    "exit":     { "$value": "cubic-bezier(0.3, 0, 1, 1)" }
+    "sheet": {
+      "$value": "cubic-bezier(0.32, 0.72, 0, 1)"
+    },
+    "enter": {
+      "$value": "cubic-bezier(0.16, 1, 0.3, 1)"
+    },
+    "exit": {
+      "$value": "cubic-bezier(0.4, 0, 1, 1)"
+    },
+    "standard": {
+      "$value": "cubic-bezier(0.2, 0, 0, 1)"
+    },
+    "spring": {
+      "$value": "linear(0, 0.009 1%, 0.035 2.3%, 0.142 4.7%, 0.512 10.5%, 0.711 13.6%, 0.856 16.6%, 0.956 19.7%, 1.022 23%, 1.053 26.4%, 1.06 30.1%, 1.047 34.5%, 1.022 41.3%, 0.999 51.4%, 0.994 62.4%, 1)"
+    },
+    "$description": "sheet is the curve iOS uses for a presented surface: fast off the mark, long settle, no overshoot, because overshoot on a full-height plane reads as a bounce rather than as physics. spring is a sampled real spring, for small things that can afford to overshoot."
   }
 }

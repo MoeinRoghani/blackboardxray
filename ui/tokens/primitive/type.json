@@ -2,41 +2,83 @@
   "$description": "Stage 6. One modular scale at 1.2, from a 14px body. Dense, because this is an operator tool read beside a terminal.",
   "font": {
     "$type": "fontFamily",
-    "sans": { "$value": "'Geist Variable', ui-sans-serif, system-ui, sans-serif" },
-    "mono": { "$value": "'Geist Mono Variable', ui-monospace, SFMono-Regular, monospace" }
+    "text": {
+      "$value": "'Geist Variable', -apple-system, ui-sans-serif, system-ui, sans-serif"
+    },
+    "mono": {
+      "$value": "'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace"
+    }
   },
   "size": {
     "$type": "dimension",
-    "2xs": { "$value": "11px" },
-    "xs":  { "$value": "12px" },
-    "sm":  { "$value": "13px" },
-    "md":  { "$value": "14px" },
-    "lg":  { "$value": "16px" },
-    "xl":  { "$value": "20px" },
-    "2xl": { "$value": "26px" },
-    "3xl": { "$value": "32px" }
+    "2xs": {
+      "$value": "11px"
+    },
+    "xs": {
+      "$value": "12px"
+    },
+    "sm": {
+      "$value": "13px"
+    },
+    "md": {
+      "$value": "14px"
+    },
+    "lg": {
+      "$value": "16px"
+    },
+    "xl": {
+      "$value": "20px"
+    },
+    "2xl": {
+      "$value": "26px"
+    },
+    "3xl": {
+      "$value": "32px"
+    }
   },
   "leading": {
     "$type": "number",
-    "tight":   { "$value": "1.15" },
-    "snug":    { "$value": "1.3" },
-    "normal":  { "$value": "1.5" },
-    "relaxed": { "$value": "1.65" }
+    "tight": {
+      "$value": "1.15"
+    },
+    "snug": {
+      "$value": "1.3"
+    },
+    "normal": {
+      "$value": "1.5"
+    },
+    "relaxed": {
+      "$value": "1.65"
+    }
   },
   "weight": {
     "$type": "number",
-    "regular":  { "$value": "400" },
-    "medium":   { "$value": "500" },
-    "semibold": { "$value": "600" }
+    "regular": {
+      "$value": "400"
+    },
+    "medium": {
+      "$value": "500"
+    },
+    "semibold": {
+      "$value": "600"
+    }
   },
   "tracking": {
     "$type": "dimension",
-    "tight":  { "$value": "-0.011em" },
-    "normal": { "$value": "0em" },
-    "wide":   { "$value": "0.04em" }
+    "tight": {
+      "$value": "-0.011em"
+    },
+    "normal": {
+      "$value": "0em"
+    },
+    "wide": {
+      "$value": "0.04em"
+    }
   },
   "measure": {
     "$type": "dimension",
-    "prose": { "$value": "68ch" }
+    "prose": {
+      "$value": "68ch"
+    }
   }
 }

@@ -1,126 +1,83 @@
 {
-  "$description": "Stage 8. The semantic tier. Every token is named by the job it does and aliases a primitive. Theming re-points this file and nothing else.",
+  "$description": "Stage 8. Named by job. Theming re-points this file alone.\nState follows one rule with no per-hue exceptions: the word is step 12, which clears AA on every plane it can land on, and the dot beside it is step 9, which carries the hue. There is no filled accent button, because a tool that only reads has no primary action to fill.",
   "color": {
-    "surface": {
-      "page": {
-        "$value": "{slate.1}"
-      },
-      "raised": {
-        "$value": "{slate.2}"
-      },
-      "sunken": {
-        "$value": "{slate.3}"
-      },
-      "hover": {
-        "$value": "{slate.3}"
-      },
-      "active": {
-        "$value": "{slate.4}"
-      },
-      "overlay": {
-        "$value": "{slateA.11}"
-      }
+    "canvas": {
+      "$value": "{gray.1}"
     },
-    "border": {
-      "subtle": {
-        "$value": "{slate.5}"
-      },
-      "default": {
-        "$value": "{slate.7}"
-      },
-      "strong": {
-        "$value": "{slate.8}"
-      }
+    "surface": {
+      "$value": "{gray.2}"
+    },
+    "surface-2": {
+      "$value": "{gray.3}"
+    },
+    "hover": {
+      "$value": "{grayA.3}"
+    },
+    "active": {
+      "$value": "{grayA.4}"
+    },
+    "sheet": {
+      "$value": "{gray.2}"
+    },
+    "hairline": {
+      "$value": "{grayA.5}"
+    },
+    "edge": {
+      "$value": "{grayA.7}"
+    },
+    "edge-strong": {
+      "$value": "{grayA.9}"
     },
     "text": {
-      "primary": {
-        "$value": "{slate.12}"
-      },
-      "secondary": {
-        "$value": "{slate.11}"
-      },
-      "on-solid": {
-        "$value": "{slate.1}"
-      }
+      "$value": "{gray.12}"
     },
-    "brand": {
-      "solid": {
-        "$value": "{cyan.9}"
-      },
-      "solid-hover": {
-        "$value": "{cyan.10}"
-      },
-      "text": {
-        "$value": "{cyan.11}"
-      },
-      "bg": {
-        "$value": "{cyan.3}"
-      },
-      "border": {
-        "$value": "{cyan.7}"
-      },
-      "on-solid": {
-        "$value": "{slate.12}"
-      }
+    "text-2": {
+      "$value": "{gray.11}"
+    },
+    "live": {
+      "$value": "{blue.12}"
+    },
+    "live-solid": {
+      "$value": "{blue.9}"
+    },
+    "live-wash": {
+      "$value": "{blue.3}"
+    },
+    "live-edge": {
+      "$value": "{blue.7}"
+    },
+    "ok": {
+      "$value": "{grass.12}"
+    },
+    "ok-solid": {
+      "$value": "{grass.9}"
+    },
+    "ok-wash": {
+      "$value": "{grass.3}"
+    },
+    "warn": {
+      "$value": "{amber.12}"
+    },
+    "warn-solid": {
+      "$value": "{amber.9}"
+    },
+    "warn-wash": {
+      "$value": "{amber.3}"
+    },
+    "bad": {
+      "$value": "{red.12}"
+    },
+    "bad-solid": {
+      "$value": "{red.9}"
+    },
+    "bad-wash": {
+      "$value": "{red.3}"
+    },
+    "bad-edge": {
+      "$value": "{red.7}"
     },
     "focus": {
-      "$value": "{cyan.11}"
-    },
-    "settled": {
-      "text": {
-        "$value": "{green.12}"
-      },
-      "bg": {
-        "$value": "{green.3}"
-      },
-      "border": {
-        "$value": "{green.6}"
-      },
-      "solid": {
-        "$value": "{green.9}"
-      }
-    },
-    "expired": {
-      "text": {
-        "$value": "{amber.12}"
-      },
-      "bg": {
-        "$value": "{amber.3}"
-      },
-      "border": {
-        "$value": "{amber.6}"
-      },
-      "solid": {
-        "$value": "{amber.9}"
-      }
-    },
-    "aborted": {
-      "text": {
-        "$value": "{red.12}"
-      },
-      "bg": {
-        "$value": "{red.3}"
-      },
-      "border": {
-        "$value": "{red.6}"
-      },
-      "solid": {
-        "$value": "{red.9}"
-      }
-    },
-    "open": {
-      "text": {
-        "$value": "{cyan.12}"
-      },
-      "bg": {
-        "$value": "{cyan.3}"
-      },
-      "border": {
-        "$value": "{cyan.6}"
-      },
-      "solid": {
-        "$value": "{cyan.9}"
-      }
+      "$value": "{blue.11}"
     }
   }
 }

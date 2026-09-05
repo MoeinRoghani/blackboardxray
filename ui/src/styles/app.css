@@ -1,189 +1,165 @@
 @import "tailwindcss";
 @import "./tokens.css";
 @import "./theme.css";
-
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
 
-/* The base layer sets what every screen inherits. Nothing below names a value:
-   every declaration reads a semantic token. */
+/* Graphite. Layered neutral planes, a chrome that lets content show through
+   it, and chroma only where it carries state. Nothing below sets a value. */
+
 @layer base {
-  * {
-    border-color: var(--border-subtle);
-  }
-
-  html {
-    color-scheme: light;
-  }
-
-  html[data-theme="dark"] {
-    color-scheme: dark;
-  }
+  html { color-scheme: light; }
+  html[data-theme="dark"] { color-scheme: dark; }
 
   body {
-    background-color: var(--surface-page);
-    color: var(--text-primary);
-    font-family: var(--font-sans);
+    background-color: var(--canvas);
+    color: var(--text);
+    font-family: var(--font-text);
     font-size: var(--text-body-size);
     line-height: var(--text-body-leading);
     letter-spacing: var(--text-body-tracking);
     -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
+    overscroll-behavior: none;
   }
 
-  /* A sequence number is an address. It is read digit by digit and compared
-     against another one, so every number in this product is tabular. */
-  .numeric {
+  /* Every number in this product is compared against another one. */
+  .figures { font-variant-numeric: tabular-nums lining-nums; }
+  .code {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
-    font-feature-settings: "tnum" 1, "zero" 1;
+    font-size: var(--text-caption-size);
+    letter-spacing: 0;
   }
 
+  /* The browser's own surfaces belong to the design. Leaving them at the
+     defaults is the cheapest tell that a page was assembled, not built. */
   :focus-visible {
     outline: var(--focus-width) solid var(--focus);
     outline-offset: var(--focus-offset);
     border-radius: var(--radius-sm);
   }
-
-  ::selection {
-    background-color: var(--brand-bg);
-    color: var(--text-primary);
-  }
-
-  ::-webkit-scrollbar {
-    width: var(--space-2);
-    height: var(--space-2);
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
+  ::selection { background-color: var(--live-wash); color: var(--text); }
+  ::-webkit-scrollbar { width: var(--space-2); height: var(--space-2); }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: var(--border-default);
+    background: var(--edge);
     border-radius: var(--radius-full);
+    border: var(--material-scrollbar-inset) solid transparent;
+    background-clip: content-box;
   }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--border-strong);
-  }
+  ::-webkit-scrollbar-thumb:hover { background-color: var(--edge-strong); background-clip: content-box; }
+  input::placeholder { color: var(--text-2); }
 }
 
 @layer components {
-  /* The type roles, as classes, so a screen asks for a role and never a size. */
-  .type-display {
-    font-size: var(--text-display-size);
-    line-height: var(--text-display-leading);
-    font-weight: var(--text-display-weight);
-    letter-spacing: var(--text-display-tracking);
-  }
-
-  .type-title {
-    font-size: var(--text-title-size);
-    line-height: var(--text-title-leading);
-    font-weight: var(--text-title-weight);
-    letter-spacing: var(--text-title-tracking);
-  }
-
-  .type-heading {
-    font-size: var(--text-heading-size);
-    line-height: var(--text-heading-leading);
-    font-weight: var(--text-heading-weight);
-  }
-
-  .type-body {
-    font-size: var(--text-body-size);
-    line-height: var(--text-body-leading);
-  }
-
-  .type-small {
-    font-size: var(--text-small-size);
-    line-height: var(--text-small-leading);
-  }
-
-  .type-caption {
-    font-size: var(--text-caption-size);
-    line-height: var(--text-caption-leading);
-  }
-
-  /* The one uppercase label style in the product, used for column headers and
-     nothing else. */
+  .type-display { font-size: var(--text-display-size); line-height: var(--text-display-leading); font-weight: var(--text-display-weight); letter-spacing: var(--text-display-tracking); }
+  .type-title   { font-size: var(--text-title-size);   line-height: var(--text-title-leading);   font-weight: var(--text-title-weight);   letter-spacing: var(--text-title-tracking); }
+  .type-heading { font-size: var(--text-heading-size); line-height: var(--text-heading-leading); font-weight: var(--text-heading-weight); }
+  .type-body    { font-size: var(--text-body-size);    line-height: var(--text-body-leading); }
+  .type-small   { font-size: var(--text-small-size);   line-height: var(--text-small-leading); }
+  .type-caption { font-size: var(--text-caption-size); line-height: var(--text-caption-leading); }
   .type-label {
-    font-size: var(--text-label-size);
-    line-height: var(--text-label-leading);
-    font-weight: var(--text-label-weight);
-    letter-spacing: var(--text-label-tracking);
-    text-transform: uppercase;
+    font-size: var(--text-label-size); line-height: var(--text-label-leading);
+    font-weight: var(--text-label-weight); letter-spacing: var(--text-label-tracking);
+    text-transform: uppercase; color: var(--text-2);
+  }
+
+  /* The chrome is a material: translucent, saturating what passes under it. */
+  .chrome {
+    background: color-mix(in srgb, var(--canvas) 72%, transparent);
+    backdrop-filter: blur(var(--material-chrome-blur)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--material-chrome-blur)) saturate(180%);
+    border-bottom: var(--material-hairline-weight) solid var(--hairline);
+  }
+
+  /* A raised plane carries a light edge along its top, the way a real surface
+     catches light, and a shadow with both offset and blur underneath it. */
+  .plane {
+    background: var(--surface);
+    border: var(--material-hairline-weight) solid var(--hairline);
+    border-radius: var(--radius-lg);
+    box-shadow:
+      inset 0 var(--material-lift-near) 0 color-mix(in srgb, var(--text) 6%, transparent),
+      0 var(--material-lift-near) var(--material-spread-near) color-mix(in srgb, var(--canvas) 60%, transparent),
+      0 var(--material-lift-mid) var(--material-spread-mid) var(--material-tuck) color-mix(in srgb, var(--canvas) 90%, transparent);
+  }
+
+  /* A pushed layer. Its inset left edge is what makes a stack read as a stack. */
+  .sheet {
+    background: var(--sheet);
+    box-shadow:
+      inset var(--material-edge-weight) 0 0 color-mix(in srgb, var(--text) 10%, transparent),
+      calc(var(--material-edge-weight) * -1) 0 0 color-mix(in srgb, var(--canvas) 70%, transparent),
+      calc(var(--material-lift-far) * -1) 0 var(--material-sheet-blur) var(--material-tuck-far) color-mix(in srgb, var(--canvas) 95%, transparent);
+  }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: var(--space-1);
+    padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm);
+    border: var(--material-edge-weight) solid var(--edge); background: var(--surface-2);
+    color: var(--text-2); white-space: nowrap;
+  }
+
+  /* The grab handle on a sheet's leading edge: the affordance that says this
+     plane can be dragged away. */
+  .grab {
+    position: absolute; inset-inline-start: var(--material-grab-weight); top: 50%;
+    transform: translateY(-50%);
+    width: var(--material-grab-weight); height: var(--material-grab-length); border-radius: var(--radius-full);
+    background: var(--edge-strong); opacity: 0.6;
   }
 }
 
 @layer utilities {
-  /* Loading is the final layout with its text replaced by a shimmer of the
-     same shape, so nothing moves when the data lands. */
-  @keyframes bxr-shimmer {
-    0% {
-      opacity: 0.45;
-    }
-    50% {
-      opacity: 0.75;
-    }
-    100% {
-      opacity: 0.45;
-    }
+  /* The canvas recedes behind a pushed layer, scaling back and dimming, so
+     depth is something the reader sees rather than infers. */
+  .recede {
+    /* No horizontal travel. Sliding it left by the same amount the scale
+       insets it puts the left edge back at zero, and the inset is the whole
+       signal that the plane has moved away from the reader. */
+    transform: scale(0.94);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    filter: saturate(0.7) brightness(0.62);
   }
+  .recede-1 { transform: scale(0.985); filter: brightness(0.5) saturate(0.7); }
 
-  .shimmer {
-    animation: bxr-shimmer 1.4s var(--easing-standard) infinite;
+  .move-canvas {
+    transition: transform var(--duration-sheet) var(--easing-sheet),
+                filter var(--duration-sheet) var(--easing-sheet),
+                border-radius var(--duration-sheet) var(--easing-sheet);
   }
+  .move-sheet {
+    transition: transform var(--duration-sheet) var(--easing-sheet),
+                opacity var(--duration-panel) var(--easing-sheet);
+  }
+  .move-state { transition: background-color var(--duration-hover) var(--easing-standard),
+                            color var(--duration-hover) var(--easing-standard),
+                            border-color var(--duration-hover) var(--easing-standard); }
 
-  /* The only loop in the product. It stops when the run closes. */
-  @keyframes bxr-live {
-    0% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    70% {
-      transform: scale(2.4);
-      opacity: 0;
-    }
-    100% {
-      transform: scale(2.4);
-      opacity: 0;
-    }
-  }
+  @keyframes bxr-scrim { from { opacity: 0; } to { opacity: 1; } }
+  .scrim-in { animation: bxr-scrim var(--duration-panel) var(--easing-sheet) both; }
 
-  .live-halo {
-    animation: bxr-live 2s var(--easing-exit) infinite;
+  @keyframes bxr-rise {
+    from { opacity: 0; transform: translateY(var(--material-rise)) scale(0.985); }
+    to   { opacity: 1; transform: none; }
   }
+  .rise { animation: bxr-rise var(--duration-panel) var(--easing-enter) both; }
 
-  /* The spine arrives before what hangs off it, because it is the axis. */
-  @keyframes bxr-draw {
-    from {
-      transform: scaleY(0);
-    }
-    to {
-      transform: scaleY(1);
-    }
+  /* An open run is still going. This is the only loop in the product and it
+     stops the moment the run closes. */
+  @keyframes bxr-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.45; transform: scale(0.86); }
   }
+  .pulse { animation: bxr-pulse 2.2s var(--easing-standard) infinite; }
 
-  .spine-draw {
-    transform-origin: top;
-    animation: bxr-draw var(--duration-slow) var(--easing-enter) both;
-  }
+  @keyframes bxr-shimmer { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.75; } }
+  .shimmer { animation: bxr-shimmer 1.5s var(--easing-standard) infinite; }
 
   @media (prefers-reduced-motion: reduce) {
-    .shimmer,
-    .live-halo,
-    .spine-draw {
-      animation: none;
-    }
-
-    .live-halo {
-      opacity: 0;
-    }
-
-    .spine-draw {
-      transform: none;
-    }
+    .move-canvas, .move-sheet, .move-state { transition: none; }
+    .scrim-in, .rise, .pulse, .shimmer { animation: none; }
+    .recede, .recede-1 { transform: none; }
   }
 }

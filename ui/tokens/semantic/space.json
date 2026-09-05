@@ -1,17 +1,90 @@
 {
-  "$description": "Stage 8. Density is a mode: comfortable is the default and compact re-points these three tokens and nothing else.",
+  "$description": "Stage 8. Layout roles. Density is a mode: compact re-points three of these and no component changes.",
   "layout": {
-    "row-inset":    { "$value": "{space.3}" },
-    "row-gap":      { "$value": "{space.2}" },
-    "panel-inset":  { "$value": "{space.4}" },
-    "section-gap":  { "$value": "{space.6}" },
-    "page-inset":   { "$value": "{space.6}" },
-    "rail-width":   { "$value": "216px" },
-    "inspector-width": { "$value": "420px" }
+    "row-inset": {
+      "$value": "{space.3}"
+    },
+    "row-gap": {
+      "$value": "{space.2}"
+    },
+    "panel-inset": {
+      "$value": "{space.4}"
+    },
+    "page-inset": {
+      "$value": "{space.6}"
+    },
+    "chrome-height": {
+      "$value": "52px"
+    },
+    "list-width": {
+      "$value": "300px"
+    },
+    "sheet-width": {
+      "$value": "540px"
+    },
+    "sheet-peek": {
+      "$value": "190px"
+    },
+    "palette-top": {
+      "$value": "12vh"
+    }
   },
   "layout-compact": {
-    "row-inset":   { "$value": "{space.2}" },
-    "row-gap":     { "$value": "{space.1}" },
-    "panel-inset": { "$value": "{space.3}" }
+    "row-inset": {
+      "$value": "{space.2}"
+    },
+    "row-gap": {
+      "$value": "{space.1}"
+    },
+    "panel-inset": {
+      "$value": "{space.3}"
+    }
+  },
+  "material": {
+    "hairline-weight": {
+      "$value": "{stroke.hair}"
+    },
+    "edge-weight": {
+      "$value": "{stroke.hair}"
+    },
+    "grab-weight": {
+      "$value": "{stroke.grab}"
+    },
+    "grab-length": {
+      "$value": "{size.grab-length}"
+    },
+    "chrome-blur": {
+      "$value": "{blur.chrome}"
+    },
+    "sheet-blur": {
+      "$value": "{blur.sheet}"
+    },
+    "lift-near": {
+      "$value": "{lift.near}"
+    },
+    "lift-mid": {
+      "$value": "{lift.mid}"
+    },
+    "lift-far": {
+      "$value": "{lift.far}"
+    },
+    "spread-near": {
+      "$value": "{spread.near}"
+    },
+    "spread-mid": {
+      "$value": "{spread.mid}"
+    },
+    "tuck": {
+      "$value": "{spread.tuck}"
+    },
+    "tuck-far": {
+      "$value": "{spread.tuck-far}"
+    },
+    "rise": {
+      "$value": "{size.rise}"
+    },
+    "scrollbar-inset": {
+      "$value": "{stroke.thick}"
+    }
   }
 }

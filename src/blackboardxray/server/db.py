@@ -422,6 +422,18 @@ class Database:
             return None
         one = found[0]
         one["runs_seen"] = self.list_runs(project_id, agent=agent, limit=50)
+        # What an agent subscribes to is not on the agent; it is on the most
+        # recent registration, because an agent that re-registers replaces its
+        # own declaration and the newest one is what the run acted on.
+        declared = self._rows(
+            "SELECT body FROM xray_events"
+            " WHERE project_id = %s AND agent = %s AND kind = 'agent.registered'"
+            " ORDER BY id DESC LIMIT 1",
+            (project_id, agent),
+        )
+        body = _body(declared[0]) if declared else {}
+        one["subscribes_to"] = body.get("subscribes_to")
+        one["writes_to"] = body.get("writes_to")
         return one
 
     def _rows(self, statement: str, args: tuple[Any, ...] = ()) -> list[dict[str, Any]]:

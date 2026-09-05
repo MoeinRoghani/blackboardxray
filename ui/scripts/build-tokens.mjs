@@ -15,11 +15,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 const read = (p) => JSON.parse(readFileSync(join(root, p), "utf8"));
 
-// The five hues, and nothing else. Four carry state and one is the brand.
-// Reserving them is what keeps state separable from decoration.
-// The five hues, and nothing else. Four carry state and one is the brand.
-// Reserving them is what keeps state separable from decoration.
-const HUES = ["slate", "cyan", "green", "amber", "red"];
+// Graphite. A pure neutral ground, because a colour cast in the surfaces is a
+// brand accent smuggled in; chroma here only ever carries state. Blue marks
+// what is live and what is selected, which is one meaning and not two.
+const HUES = ["gray", "blue", "grass", "amber", "red"];
 
 function generateColorPrimitives() {
   const out = {
@@ -71,6 +70,7 @@ const primitives = {
   ...flatten(read("tokens/primitive/zindex.json")),
   ...flatten(read("tokens/primitive/breakpoint.json")),
   ...flatten(read("tokens/primitive/focus.json")),
+  ...flatten(read("tokens/primitive/material.json")),
 };
 
 // Colour primitives are addressed as {slate.1} in the semantic files.
@@ -186,8 +186,13 @@ theme.push("");
 // The two layout widths this product names. Exposing them here is what lets a
 // component write `w-rail` instead of reaching for an arbitrary value, which
 // the raw-value gate forbids and should.
-theme.push("  --container-rail: var(--layout-rail-width);");
-theme.push("  --container-inspector: var(--layout-inspector-width);");
+theme.push("  --container-list: var(--layout-list-width);");
+theme.push("  --container-sheet: var(--layout-sheet-width);");
+// The distance a layer slides back when another is pushed over it, and the
+// height of the chrome, exposed so a component names the role and not a value.
+theme.push("  --spacing-sheet-peek: var(--layout-sheet-peek);");
+theme.push("  --spacing-chrome: var(--layout-chrome-height);");
+theme.push("  --spacing-palette-top: var(--layout-palette-top);");
 theme.push("");
 // A breakpoint is emitted as its literal value, not as a var() reference.
 // A media query cannot resolve a custom property, so `@media (width >=

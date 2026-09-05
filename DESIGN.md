@@ -1,161 +1,153 @@
 # DESIGN.md
 
-The design system as it is built, derived from the shipped artifact. Written
-after the interface, not before, so every value here is one the code actually
-reads.
+The design system as built, derived from the shipped code. Written at finish
+rather than before, so every value here is one the interface actually reads.
 
 ## The world
 
-**Instrument, not dashboard.** A dashboard summarises and throws away what
-produced the number. An instrument records at full fidelity in one continuous
-ordered trace and lets a trained reader find the moment something changed.
-Reference points are a logic analyzer, a seismograph, a printed ledger.
+**Graphite.** Layered neutral planes, a chrome that lets content show through
+it, and no brand colour at all.
 
-Mode is **Operate**: the visitor completes a task, so scanability, consistency
-and the real usage scene outrank expression. Brand lives in the details.
+Mode is **Operate**: the visitor completes a task, so scanability, state and
+familiar affordances outrank expression. Dials `VARIANCE 4 / MOTION 5 /
+DENSITY 7`.
 
-Dials: `DESIGN_VARIANCE 4`, `MOTION_INTENSITY 3`, `VISUAL_DENSITY 7`.
+## The idea the shell is built on
 
-## The device the whole product is built on
+**The canvas is where you are and layers are what you are inspecting.**
 
-The spine. `blackboardx` assigns a gapless total order in the store and every
-write's number is also its address, so unlike every trace viewer there is no
-ordering to reconstruct from clocks that disagree.
+The four sibling destinations this replaced were not siblings. This product has
+one object, the run; agents are a lens on runs and totals are runs counted. So
+the menu is gone, the runs list is permanent, and everything you drill into
+arrives as a sheet over a canvas that never unmounts.
 
-That buys a single numbered column instead of a field of overlapping bars, and
-it carries the product's central distinction for free:
-
-| On the spine | Off the spine |
+| | |
 | --- | --- |
-| Took a sequence number | Took none |
-| Changed the board | Was the run acting on the board |
-| Filled square node, address in the gutter | Hollow node, indented, no address |
-| A write, a premise set | A notification, an acknowledgment, a refusal, a conflict |
+| Canvas | Header, runs list, selected run. Never navigates away |
+| Layer | Event, agent, or settings. Pushes from the trailing edge |
+| Depth | Capped at three; past that the receded canvas stops being readable |
+| Back | Names what it returns to, and is also Escape, the scrim, a swipe, and the browser's own back button |
 
-A reader sees, without reading a word, how much of a run was record and how much
-was control.
+Every depth is a route, so a reload puts the reader where they were and any
+depth is a link somebody can paste.
+
+## No brand colour
+
+The only chroma in the product carries state. Blue is what is live and what is
+selected, which is one meaning rather than two. Green, amber and red are the
+three closed outcomes. Everything else is a pure neutral.
+
+That is what makes it read as an instrument rather than as a website, and it is
+why identity had to come from material, type and motion instead.
+
+**One state rule, no per-hue exceptions.** The word is step 12, which clears AA
+on every plane it can land on, and the dot beside it is step 9, which carries
+the hue. State is never the dot alone: around 4.5% of men cannot separate red
+from green, and pairing every colour with its own word is also what frees the
+dot from a contrast floor.
+
+There is no filled accent button, because a tool that only reads has no primary
+action to fill.
+
+## Material
+
+Three planes and two rules, and the rest is derived.
+
+- **Chrome** is translucent and saturating, so content passing under it is
+  visible and tinted rather than hidden.
+- **A raised plane** carries an inset light edge along its top, the way a real
+  surface catches light, over a shadow with both offset and blur.
+- **A sheet** adds an inset edge on its leading side. That edge is the whole
+  reason a stack of two reads as a stack.
+- **The canvas recedes** behind a layer: scaled to 94% with its corners
+  rounded, desaturated and dimmed. It does not translate, because sliding it
+  by the amount the scale insets it puts the edge back at zero and the inset is
+  the entire signal.
+
+## Motion
+
+| Movement | Duration | Reason |
+| --- | --- | --- |
+| Sheet in and out | 420ms, iOS sheet curve | The layer arrives from where back will send it |
+| Canvas recede | 420ms, same curve | It moves with the sheet, not after it |
+| Scrim | 260ms | The canvas becomes unavailable |
+| Panel rise | 260ms | Something new is present |
+| Hover and state | 120ms | Feedback |
+| Open-run pulse | 2.2s loop | This run is still going |
+
+The sheet curve is `cubic-bezier(0.32, 0.72, 0, 1)`: fast off the mark, long
+settle, no overshoot. A full-height plane that bounces reads as a toy. Drag
+tracks the pointer with no transition at all and dismisses past a third of the
+width or on a throw.
+
+Two loops exist, the open-run pulse and the loading shimmer, and the first stops
+when the run closes. Every animation collapses under `prefers-reduced-motion`,
+which the token build enforces by writing the durations to zero.
 
 ## Tokens
 
 Three tiers, one direction, generated by `ui/scripts/build-tokens.mjs`.
+Primitives hold values, semantic tokens alias them by job, components read the
+semantic tier through Tailwind. Colour primitives come from `@radix-ui/colors`
+rather than being authored, so the steps carry Radix's fixed roles.
 
-| Tier | Where | Rule |
-| --- | --- | --- |
-| Primitive | `ui/tokens/primitive/` | Raw values. Nothing in `src/` reads one |
-| Semantic | `ui/tokens/semantic/` | Named by job, aliases a primitive. Theming's only moving part |
-| Component | Tailwind utilities | Reads the semantic tier only |
+82 primitives, 240 colour steps, 26 semantic tokens, both themes.
 
-Colour primitives are generated from `@radix-ui/colors` rather than authored, so
-the twelve steps carry Radix's fixed roles and no OKLCH ramp is invented.
+Every physical constant is a token, including line weights, blur radii, shadow
+lifts and the distance a layer slides back. A component names a role and never
+a measurement.
 
-**Five hues and no more.** `slate` neutral, `cyan` brand, and `green`, `amber`,
-`red` reserved for the three closed outcomes. An open run reads in the brand
-hue, because the live thing is the thing the brand should point at. There is no
-sixth hue and nothing decorative is coloured.
+## Type
 
-**Agents carry no colour.** There is no bounded set of them, so a palette would
-run out and start repeating, and a repeated hue reads as a relationship that is
-not there.
+Geist and Geist Mono, self-hosted. Falling back to the platform sans is a
+failure, not a fallback.
 
-### Type
+Every number is tabular and lining, because every number in this product is
+compared against another one. Monospace is reserved for what is genuinely
+code: identifiers, regions, and stored content.
 
-Geist and Geist Mono, self-hosted. One modular scale at 1.2 from a 14px body,
-which is dense because this is read on a laptop beside a terminal.
-
-Every number in the product is monospaced and tabular. A sequence number is an
-address, read digit by digit and compared against another one, and proportional
-digits make that comparison a guess.
-
-Hierarchy is carried by weight and size. There is no third text colour, because
-a faded tertiary grey is how a design system ends up shipping text below its
-contrast floor.
-
-### Radius
-
-| Element | Radius |
-| --- | --- |
-| Data rows, table cells, the spine | `none` |
-| Buttons, inputs, badges | `sm` |
-| Panels, popovers, dialogs | `md` |
-
-`lg` and `full` exist in the scale and are deliberately unused. An instrument has
-square corners on its readouts.
+Hierarchy is weight and size. There is no third text colour, because a faded
+tertiary grey is how a system ends up shipping text below its contrast floor.
 
 ## Gates
 
-Four, and CI runs all of them. A screen cannot make a decision the system did
-not.
+Five, all in CI. A screen cannot make a decision the system did not.
 
 | Gate | Refuses |
 | --- | --- |
-| `npm run check` | Any hex, `rgb()`, px literal, rem literal, or Tailwind arbitrary value in `src/` |
-| `npm run contrast` | Any of 32 read pairs below its floor, in either theme |
+| `npm run check` | Any hex, rgb, px, rem or arbitrary Tailwind value in `src/` |
+| `npm run contrast` | Any of 50 read pairs below its floor, in either theme |
 | `npm run typecheck` | A body field read off the wrong event kind |
+| `impeccable detect` | The mechanical design defects |
 | `pytest tests/test_wire_mirror.py` | A kind named in Python and forgotten in TypeScript |
 
-The contrast gate is the one that shaped the palette. It rejected step-11 text
-on a step-2 tint at 4.43:1 for amber, so every status badge is step 12 on step
-3, which clears the floor in both themes with real margin.
+## What the verification pass found
 
-Two floors that look like they belong there do not, and the file says why. A
-structural hairline between rows bounds no control. A status fill is never the
-only carrier of meaning, because every status colour appears beside its own
-word, which is also what makes the product usable by a reader who cannot
-separate red from green.
+**Breakpoints were emitted as `var()` references.** A media query cannot
+resolve a custom property, so every responsive variant in the product was
+silently dead. Breakpoints are now literals; everything else may still
+reference a token.
 
-## Motion
+**The canvas was not receding.** It scaled correctly and then translated left
+by the same amount, which put its edge back at zero and hid the only cue that
+it had moved away.
 
-Four movements, each justified in one sentence, all collapsing under
-`prefers-reduced-motion`, which the token build enforces by writing every
-duration to zero.
+**The kind column truncated the library's own vocabulary.** "Notification
+dispatched" is what the library calls it and shortening it was not ours to do,
+so the column widened instead.
 
-| Movement | Reason |
-| --- | --- |
-| Row hover surface, 120ms | Feedback: the row is operable |
-| Panel and popover enter, 180ms | State transition: something new is present |
-| The live indicator on an open run | State: this run is still going |
-| The spine drawing on first paint, 260ms | Hierarchy: it is the axis, so it arrives first |
+**Mobile had a navigation dead end.** The list hides below the two-pane
+breakpoint, and nothing brought it back.
 
-The live indicator is the only loop, and it stops when the run closes.
-
-## Layout
-
-A left rail, because vertical space is the scarce axis on a data-dense tool read
-beside a terminal. Below `md` the rail becomes a header that wraps onto two rows
-rather than scrolling sideways, since a nav a reader has to drag is a nav with
-items they never find.
-
-One breakpoint carries real weight: at `lg` the run detail's inspector moves
-from below the spine to beside it, which is where two panes stop fitting. The
-others exist so that nothing breaks between.
-
-## What was found by looking
-
-Both defects came out of the screenshot pass, and neither was visible in code
-review.
-
-**The spine was wrong.** The SDK set `sequence` on notification events, which
-put every notification on the spine beside the writes and destroyed the one
-distinction the timeline exists to draw. A run showed 22 events on the board
-when 6 had touched it. Fixed in the SDK, not in the interface: a notification
-carries no values and takes no address.
-
-**Every responsive variant was dead.** The token build emitted breakpoints as
-`var()` references, and a media query cannot resolve a custom property, so
-`@media (width >= var(--screen-lg))` was invalid and silently dropped. The
-two-pane layout had never rendered. Breakpoints are now emitted as literals and
-everything else may still reference a token.
+**The agent sheet shipped placeholder prose** where its subscriptions belong.
+The API did not carry them, so the API grew to read them off the agent's most
+recent registration.
 
 ## What is deliberately absent
 
-No cards around data rows. At this density a card is six borders and a shadow
-doing the work one gap already did, and cards break the column alignment a
-reader needs to compare two runs.
-
-No eyebrow labels above section headings. The rail already says which section
-this is.
-
-No summary tiles floating above the table. The counts sit in a hairline rail
-with the thing they count.
-
-No sparklines, no progress tracks, no gauges. Every number is the number.
+No left menu. No cards around data rows; at this density a card is six borders
+and a shadow doing the work one hairline already did, and cards break the
+column alignment a reader needs to compare two runs. No stat tiles, which is
+the hero-metric template the craft floor refuses. No eyebrow labels above
+headings. No sparklines, no progress tracks, no gauges. Every number is the
+number.

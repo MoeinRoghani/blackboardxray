@@ -50,6 +50,9 @@ export interface AgentSummary {
 
 export interface AgentDetail extends AgentSummary {
   runs_seen: Run[];
+  /** From the agent's most recent registration, which replaced any earlier one. */
+  subscribes_to: string[] | null;
+  writes_to: string[] | null;
 }
 
 export interface Overview {

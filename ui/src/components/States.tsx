@@ -26,16 +26,16 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-start gap-3 border border-border-subtle",
-        "rounded-md bg-surface-raised p-8",
+        "flex flex-col items-start gap-2.5 rounded-lg border border-hairline",
+        "bg-surface px-5 py-6",
         className
       )}
     >
-      <Icon aria-hidden className="size-5 text-text-secondary" />
-      <h2 className="type-heading text-text-primary">{title}</h2>
-      <div className="type-small max-w-prose text-text-secondary">{children}</div>
+      <Icon aria-hidden className="size-4 text-text-2" />
+      <h2 className="type-heading">{title}</h2>
+      <div className="max-w-prose type-small text-text-2">{children}</div>
       {command ? (
-        <pre className="numeric mt-1 w-full overflow-x-auto rounded-sm border border-border-subtle bg-surface-sunken p-3 type-caption text-text-primary">
+        <pre className="code mt-1 w-full overflow-x-auto rounded-md border border-hairline bg-canvas p-3 text-text-2">
           <code>{command}</code>
         </pre>
       ) : null}
@@ -50,31 +50,31 @@ export function ErrorState({
   error: ApiError | Error | null;
   className?: string;
 }) {
-  const isApi = error instanceof ApiError;
-  const code = isApi ? error.code : "unexpected";
+  const code = error instanceof ApiError ? error.code : "unexpected";
   const detail = error?.message ?? "The platform did not say what failed.";
   return (
     <div
+      role="alert"
       className={cn(
-        "flex flex-col items-start gap-2 rounded-md border",
-        "border-aborted-border bg-aborted-bg p-6",
+        "flex flex-col items-start gap-1.5 rounded-lg border border-bad-edge",
+        "bg-bad-wash px-4 py-3",
         className
       )}
-      role="alert"
     >
       <div className="flex items-center gap-2">
-        <AlertTriangle aria-hidden className="size-4 text-aborted-text" />
-        <h2 className="type-heading text-aborted-text">{TITLE[code] ?? "This did not load"}</h2>
+        <AlertTriangle aria-hidden className="size-3.5 text-bad" />
+        <h2 className="type-small font-medium text-bad">
+          {TITLE[code] ?? "This did not load"}
+        </h2>
       </div>
-      <p className="type-small max-w-prose text-aborted-text">{detail}</p>
-      <p className="type-caption text-aborted-text opacity-80">
+      <p className="max-w-prose type-caption text-bad">{detail}</p>
+      <p className="max-w-prose type-caption text-text-2">
         {CHECK[code] ?? "Check the server log for the request that failed."}
       </p>
     </div>
   );
 }
 
-/** What to call each failure, and what to check about it. */
 const TITLE: Record<string, string> = {
   unreachable: "The platform is not answering",
   no_project: "No project exists yet",
@@ -85,10 +85,10 @@ const TITLE: Record<string, string> = {
 
 const CHECK: Record<string, string> = {
   unreachable:
-    "Check that `blackboardxray serve` is running and that it is on the port this page expects.",
+    "Check that `blackboardxray serve` is running and on the port this page expects.",
   no_project:
     "Create one with `blackboardxray project <slug>`, then issue a key with `blackboardxray key <slug>`.",
-  unknown_project: "Check the project parameter against the ones in Settings.",
+  unknown_project: "Check the project against the ones in Settings.",
   unknown_run:
     "The board identifier is opaque to the platform, so a run appears only once something has been sent for it.",
   unknown_agent: "An agent appears once it has written or been notified in some run.",

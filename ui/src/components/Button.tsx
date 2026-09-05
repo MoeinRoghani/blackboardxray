@@ -1,57 +1,41 @@
 /**
- * Stage 11. One family, by emphasis, and the state matrix every other control
- * copies.
+ * One family by emphasis. There is no filled accent button, because a tool
+ * that only reads has no primary action to fill.
  *
- * The hit target is at least 44px even where the visible control is shorter:
- * a padded pseudo-element carries the extra, so a dense row keeps its rhythm
- * and a thumb still lands. `:focus-visible` is never removed.
+ * The hit target is 44px even where the control is shorter: a padded
+ * pseudo-element carries the difference, so a dense header keeps its rhythm
+ * and a thumb still lands.
  */
 import { Slot } from "@radix-ui/react-slot";
-import { Loader2 } from "lucide-react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-type Emphasis = "primary" | "secondary" | "ghost";
+type Emphasis = "solid" | "quiet" | "bare";
 type Size = "sm" | "md";
 
 const EMPHASIS: Record<Emphasis, string> = {
-  primary: cn(
-    "bg-brand-solid text-brand-on-solid",
-    "hover:bg-brand-solid-hover",
-    "active:translate-y-px"
-  ),
-  secondary: cn(
-    "bg-surface-raised text-text-primary border border-border-default",
-    "hover:bg-surface-hover hover:border-border-strong",
-    "active:bg-surface-active active:translate-y-px"
-  ),
-  ghost: cn(
-    "bg-transparent text-text-secondary",
-    "hover:bg-surface-hover hover:text-text-primary",
-    "active:bg-surface-active"
-  ),
+  solid: "bg-surface-2 text-text border border-edge hover:bg-hover hover:border-edge-strong active:bg-active",
+  quiet: "bg-transparent text-text-2 border border-transparent hover:bg-hover hover:text-text",
+  bare: "bg-transparent text-live border border-transparent hover:opacity-80",
 };
 
 const SIZE: Record<Size, string> = {
   sm: "h-6 px-2 gap-1 type-caption",
-  md: "h-8 px-3 gap-2 type-small",
+  md: "h-8 px-3 gap-1.5 type-small",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   emphasis?: Emphasis;
   size?: Size;
-  loading?: boolean;
   asChild?: boolean;
   children?: ReactNode;
 }
 
 export function Button({
-  emphasis = "secondary",
+  emphasis = "quiet",
   size = "md",
-  loading = false,
   asChild = false,
   className,
-  disabled,
   children,
   ...rest
 }: ButtonProps) {
@@ -59,34 +43,18 @@ export function Button({
   return (
     <Component
       className={cn(
-        "relative inline-flex items-center justify-center rounded-sm",
-        "font-medium whitespace-nowrap select-none",
-        "transition-colors duration-fast ease-standard",
-        // The invisible half of the hit target.
-        "before:absolute before:left-0 before:right-0 before:top-1/2",
-        "before:h-11 before:-translate-y-1/2 before:content-['']",
-        "disabled:pointer-events-none disabled:opacity-50",
+        "move-state relative inline-flex select-none items-center justify-center",
+        "whitespace-nowrap rounded-sm font-medium",
+        "before:absolute before:inset-x-0 before:top-1/2 before:h-11",
+        "before:-translate-y-1/2 before:content-['']",
+        "disabled:pointer-events-none disabled:opacity-40",
         EMPHASIS[emphasis],
         SIZE[size],
         className
       )}
-      disabled={asChild ? undefined : disabled || loading}
-      aria-busy={loading || undefined}
       {...rest}
     >
-      {/* Slot forwards its props onto exactly one child, so a spinner beside
-          the child would be a second one and it refuses. A button rendered as
-          a link is navigation and has no loading state to show. */}
-      {asChild ? (
-        children
-      ) : (
-        <>
-          {loading ? (
-            <Loader2 aria-hidden className="size-3.5 animate-spin" />
-          ) : null}
-          {children}
-        </>
-      )}
+      {children}
     </Component>
   );
 }
