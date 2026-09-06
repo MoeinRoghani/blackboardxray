@@ -185,6 +185,15 @@ What is deliberately not built, and why, is at the end of
 rate limiting that is per process, and one Postgres rather than four stateful
 services.
 
+One thing is unverified locally and is worth saying rather than assuming. The
+container image has never been built on this machine: the registry is not
+reachable from here, so `docker pull` returns nothing and the build cannot
+start. What was verified instead is every step it is made of, separately.
+`npm ci` installs from the committed lockfile, `npm run build` produces the
+interface, and the wheel was installed into a clean environment and watched
+migrate a database and serve its own assets. The image itself is first built by
+the `compose` job in CI, which brings the stack up and walks the quickstart.
+
 The interface is done and scoped: a project is in the path, everything under
 `/p/:projectId` needs a session, and the three screens before a session
 (`/signin`, `/setup`, `/join/:token`) are the only ones that answer without
