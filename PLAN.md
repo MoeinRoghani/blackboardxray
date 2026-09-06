@@ -205,11 +205,12 @@ What is deliberately not built, and why, is at the end of
 rate limiting that is per process, and one Postgres rather than four stateful
 services.
 
-The container image cannot be built on this machine, because the registry is
-not reachable from it. It is built by the `compose` job in CI, which brings the
-whole stack up and walks the quickstart against it, and **that job passes**. So
-the image builds, the interface is served from it, and the first run screen
-makes a key that ingests, all verified somewhere other than here.
+Everything is released and everything was walked rather than assumed. A clone
+nobody had touched pulled `ghcr.io/moeinroghani/blackboardxray:0`, brought both
+containers up healthy, set the platform up over HTTP, ingested with the key
+that screen returned, read it back, refused a read with no session, and served
+its own interface. The wheel was installed from PyPI into a clean environment
+and watched migrate a database and serve its assets.
 
 The interface is done and scoped: a project is in the path, everything under
 `/p/:projectId` needs a session, and the three screens before a session
@@ -281,7 +282,7 @@ green.
 | X2 | The release pull request release-please opens, merged, tagging `0.1.0` | done |
 | X3 | The image on GHCR, pulled and run from the registry rather than from a build | done |
 | X4 | The client on PyPI by trusted publishing, installed from the index into a clean environment | done |
-| X5 | The quickstart walked from a clone nobody has touched, against the published image | |
+| X5 | The quickstart walked from a clone nobody has touched, against the published image | done |
 
 ## Rules for every step
 
