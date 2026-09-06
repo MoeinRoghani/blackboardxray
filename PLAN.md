@@ -154,12 +154,12 @@ would say how many projects exist.
 | O1 | First run. No users means one reachable page, which creates the owner, an organization, a project and the first key | done |
 | O2 | Headless initialization from the environment, idempotent, for a compose file or a chart | done |
 | O3 | Signup is invite only unless a deployment opens it | done |
-| U7 | The unauthenticated shell: sign in, first run, accept an invite | |
-| U8 | The organization and project switcher, and the account menu | |
-| U9 | Project settings: keys created and shown once, revoked, and retention | |
-| U10 | Organization settings: members, roles, and invite links to copy | |
-| U11 | The account: name, password, and every session with a way to end it | |
-| U12 | Every existing surface scoped to the project in the address | |
+| U7 | The unauthenticated shell: sign in, first run, accept an invite | done |
+| U8 | The organization and project switcher, and the account menu | done |
+| U9 | Project settings: keys created and shown once, revoked, and retention | done |
+| U10 | Organization settings: members, roles, and invite links to copy | done |
+| U11 | The account: name, password, and every session with a way to end it | done |
+| U12 | Every existing surface scoped to the project in the address | done |
 | P1 | Retention. A per project window, chunked deletes, one sweeper however many replicas | |
 | P2 | Ingest limits: per key rate, payload ceiling, and a 429 the client already knows how to obey | |
 | P3 | Graceful shutdown, and a request identifier through every log line. Liveness against readiness is already built: `/api/v1/health` answers whether the process runs and `/api/v1/ready` whether it can serve, because an orchestrator restarts one and drains the other | |
@@ -172,14 +172,13 @@ would say how many projects exist.
 
 ## Where things stand
 
-Everything through `O3` is built, tested and committed. `U`, `P` and `R` are
-not started.
+Everything through `U12` is built, tested and committed. `P` and `R` are
+not started, except `R5`, which was built during `M1`.
 
-The interface is the next thing and it is currently broken, deliberately.
-Every read moved from `/api/v1/runs` to `/api/v1/projects/{id}/runs` when
-projects stopped being globally unique, and every read now needs a session.
-`ui/src` still calls the old paths, so it gets 404s and 401s until `U12`. That
-is expected and is not a regression to chase.
+The interface is done and scoped: a project is in the path, everything under
+`/p/:projectId` needs a session, and the three screens before a session
+(`/signin`, `/setup`, `/join/:token`) are the only ones that answer without
+one.
 
 To run the whole thing:
 

@@ -6,6 +6,7 @@
  * decide what to show instead rather than rendering the word "undefined".
  */
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import {
   useInfiniteQuery,
   useQuery,
@@ -13,6 +14,21 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query";
 import type { AgentDeclaration, Outcome, RegionDeclaration, RunEvent } from "./events";
+import { ApiError, get, search } from "./http";
+
+export { ApiError };
+
+/**
+ * The project every read below is about, taken from the address.
+ *
+ * A project used to be implicit, because there was one. It is in the path now,
+ * so a hook reads it rather than every call site threading it through: the
+ * screens did not need to learn about tenancy, only the layer under them did.
+ */
+export function useProjectId(): string {
+  const { projectId = "" } = useParams();
+  return projectId;
+}
 
 export interface Run {
   project_id: number;
@@ -85,67 +101,6 @@ export interface Health {
   kinds: string[];
 }
 
-export interface Project {
-  id: number;
-  slug: string;
-  name: string;
-  created_at: string;
-  runs: number;
-  keys: number;
-}
-
-/** What the platform answered when it could not do what was asked. */
-export class ApiError extends Error {
-  readonly status: number;
-  readonly code: string;
-
-  constructor(status: number, code: string, message: string) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-    this.code = code;
-  }
-}
-
-async function get<T>(path: string): Promise<T> {
-  let answer: Response;
-  try {
-    answer = await fetch(`/api/v1${path}`, {
-      headers: { accept: "application/json" },
-    });
-  } catch {
-    throw new ApiError(
-      0,
-      "unreachable",
-      "The platform could not be reached. Check that the server is running."
-    );
-  }
-  if (!answer.ok) {
-    let code = "request_failed";
-    let detail = `The platform answered ${answer.status}.`;
-    try {
-      const body = await answer.json();
-      code = body.error ?? code;
-      detail = body.detail ?? detail;
-    } catch {
-      // A body that is not JSON leaves the status as the whole story.
-    }
-    throw new ApiError(answer.status, code, detail);
-  }
-  return (await answer.json()) as T;
-}
-
-function search(params: Record<string, string | number | undefined>): string {
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "" && value !== null) {
-      query.set(key, String(value));
-    }
-  }
-  const rendered = query.toString();
-  return rendered ? `?${rendered}` : "";
-}
-
 /** An open run is still moving, so its views refetch. A closed one does not. */
 const LIVE = 5000;
 
@@ -154,9 +109,10 @@ export function useHealth(): UseQueryResult<Health, ApiError> {
 }
 
 export function useOverview(): UseQueryResult<Overview, ApiError> {
+  const project = useProjectId();
   return useQuery({
-    queryKey: ["overview"],
-    queryFn: () => get<Overview>("/overview"),
+    queryKey: ["overview", project],
+    queryFn: () => get<Overview>(`/projects/${project}/overview`),
     refetchInterval: LIVE,
   });
 }
@@ -218,11 +174,11 @@ export function useHistogram(
   window: Window,
   filters: RunFilters
 ): UseQueryResult<Histogram, ApiError> {
+  const project = useProjectId();
   return useQuery({
-    queryKey: ["histogram", window, filters],
+    queryKey: ["histogram", project, window, filters],
     queryFn: () =>
-      get<Histogram>(
-        `/histogram${search({
+      get<Histogram>(`/projects/${project}/histogram${search({
           step: window.step,
           buckets: window.buckets,
           agent: filters.agent,
@@ -235,11 +191,18 @@ export function useHistogram(
 }
 
 export function useFacets(filters: RunFilters): UseQueryResult<Facets, ApiError> {
+  const project = useProjectId();
   return useQuery({
-    queryKey: ["facets", filters.agent, filters.search, filters.since, filters.until],
+    queryKey: [
+      "facets",
+      project,
+      filters.agent,
+      filters.search,
+      filters.since,
+      filters.until,
+    ],
     queryFn: () =>
-      get<Facets>(
-        `/facets${search({
+      get<Facets>(`/projects/${project}/facets${search({
           agent: filters.agent,
           search: filters.search,
           since: filters.since,
@@ -272,12 +235,12 @@ export interface RunPage {
 export function useRunPages(
   filters: RunFilters
 ): UseInfiniteQueryResult<{ pages: RunPage[]; pageParams: number[] }, ApiError> {
+  const project = useProjectId();
   return useInfiniteQuery({
-    queryKey: ["run-pages", filters],
+    queryKey: ["run-pages", project, filters],
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
-      get<RunPage>(
-        `/runs${search({
+      get<RunPage>(`/projects/${project}/runs${search({
           ...filters,
           unfinished: filters.unfinished ? 1 : undefined,
           limit: PAGE,
@@ -294,9 +257,10 @@ export function useRunPages(
 }
 
 export function useRun(boardId: string): UseQueryResult<Run, ApiError> {
+  const project = useProjectId();
   return useQuery({
-    queryKey: ["run", boardId],
-    queryFn: () => get<Run>(`/runs/${encodeURIComponent(boardId)}`),
+    queryKey: ["run", project, boardId],
+    queryFn: () => get<Run>(`/projects/${project}/runs/${encodeURIComponent(boardId)}`),
     refetchInterval: (query) => (query.state.data?.outcome ? false : LIVE),
   });
 }
@@ -305,37 +269,33 @@ export function useRunEvents(
   boardId: string,
   isOpen: boolean
 ): UseQueryResult<{ events: RunEvent[]; has_more: boolean; next_after: number }, ApiError> {
+  const project = useProjectId();
   return useQuery({
-    queryKey: ["events", boardId],
+    queryKey: ["events", project, boardId],
     queryFn: () =>
-      get<{ events: RunEvent[]; has_more: boolean; next_after: number }>(
-        `/runs/${encodeURIComponent(boardId)}/events${search({ limit: 2000 })}`
+      get<{ events: RunEvent[]; has_more: boolean; next_after: number }>(`/projects/${project}/runs/${encodeURIComponent(boardId)}/events${search({ limit: 2000 })}`
       ),
     refetchInterval: isOpen ? LIVE : false,
   });
 }
 
 export function useAgents(): UseQueryResult<{ agents: AgentSummary[] }, ApiError> {
+  const project = useProjectId();
   return useQuery({
-    queryKey: ["agents"],
-    queryFn: () => get<{ agents: AgentSummary[] }>("/agents"),
+    queryKey: ["agents", project],
+    queryFn: () => get<{ agents: AgentSummary[] }>(`/projects/${project}/agents`),
     refetchInterval: LIVE,
   });
 }
 
 export function useAgent(name: string): UseQueryResult<AgentDetail, ApiError> {
+  const project = useProjectId();
   return useQuery({
-    queryKey: ["agent", name],
-    queryFn: () => get<AgentDetail>(`/agents/${encodeURIComponent(name)}`),
+    queryKey: ["agent", project, name],
+    queryFn: () => get<AgentDetail>(`/projects/${project}/agents/${encodeURIComponent(name)}`),
   });
 }
 
-export function useProjects(): UseQueryResult<{ projects: Project[] }, ApiError> {
-  return useQuery({
-    queryKey: ["projects"],
-    queryFn: () => get<{ projects: Project[] }>("/projects"),
-  });
-}
 
 export type { AgentDeclaration, RegionDeclaration, RunEvent };
 

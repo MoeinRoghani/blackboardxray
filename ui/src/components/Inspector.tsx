@@ -18,9 +18,10 @@ import { cn } from "@/lib/cn";
 import { ago, bytes, between, count, duration, since } from "@/lib/format";
 import { OUTCOME_LABEL, runTone, type RunEvent } from "@/lib/events";
 import { Dot } from "@/components/Dot";
-import { useRun, useRunEvents } from "@/lib/api";
+import { useProjectId, useRun, useRunEvents } from "@/lib/api";
 
 export function Inspector({ boardId, onClose }: { boardId: string; onClose: () => void }) {
+  const project = useProjectId();
   const run = useRun(boardId);
   const open = run.data ? run.data.outcome === null : false;
   const events = useRunEvents(boardId, open);
@@ -47,7 +48,7 @@ export function Inspector({ boardId, onClose }: { boardId: string; onClose: () =
           </p>
         </div>
         <Link
-          to={`/boards/${encodeURIComponent(boardId)}`}
+          to={`/p/${project}/boards/${encodeURIComponent(boardId)}`}
           className="move-state flex h-6 shrink-0 items-center gap-1 rounded-sm border border-edge bg-plane-2 px-2 type-caption text-text hover:bg-hover"
         >
           <Network size={12} aria-hidden />
@@ -155,7 +156,7 @@ export function Inspector({ boardId, onClose }: { boardId: string; onClose: () =
 
             <div className="p-3">
               <Link
-                to={`/boards/${encodeURIComponent(boardId)}?view=events`}
+                to={`/p/${project}/boards/${encodeURIComponent(boardId)}?view=events`}
                 className="move-state inline-flex items-center gap-1 rounded-sm type-caption text-live hover:underline"
               >
                 All {count(run.data.n_events)} events

@@ -22,7 +22,7 @@ import { cn } from "@/lib/cn";
 import { ago, between, count, duration } from "@/lib/format";
 import { OUTCOME_LABEL, runTone, type RunEvent } from "@/lib/events";
 import { Dot } from "@/components/Dot";
-import { useRun, useRunEvents } from "@/lib/api";
+import { useProjectId, useRun, useRunEvents } from "@/lib/api";
 
 const VIEWS = [
   { id: "graph", label: "Graph" },
@@ -34,6 +34,7 @@ type ViewId = (typeof VIEWS)[number]["id"];
 
 export function Board() {
   const { boardId = "" } = useParams();
+  const projectId = useProjectId();
   const [params, setParams] = useSearchParams();
   const view = (VIEWS.find((one) => one.id === params.get("view"))?.id ?? "graph") as ViewId;
 
@@ -55,7 +56,7 @@ export function Board() {
       <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto]">
         <header className="band band-under flex items-center gap-3 px-2 py-2.5">
           <Link
-            to="/"
+            to={`/p/${projectId}`}
             className="move-state flex h-6 items-center gap-1 rounded-sm px-1.5 type-caption text-text-2 hover:bg-hover hover:text-text"
           >
             <ChevronLeft size={13} aria-hidden />

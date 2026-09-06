@@ -1,19 +1,20 @@
 /**
- * Settings, as a place rather than as a drawer.
+ * What this deployment is, for whoever is standing it up.
  *
- * It was a panel pushed over the list, which made the one screen an operator
- * arrives at from a bookmark impossible to link to and put connection details
- * behind a gesture. It is a route now: it has an address, it survives a
- * reload, and it can be sent to whoever is standing up the deployment.
+ * Not project settings and not account settings: those are elsewhere and are
+ * about one thing each. This is the install itself, the version of the schema
+ * it holds, and the limits it has that somebody will otherwise discover by
+ * hitting one.
  */
 import { Frame } from "@/components/Frame";
 import { count } from "@/lib/format";
 import { EVENT_KINDS } from "@/lib/events";
-import { useHealth, useProjects } from "@/lib/api";
+import { useHealth } from "@/lib/api";
+import { useSession } from "@/lib/session";
 
-export function Settings() {
-  const projects = useProjects();
+export function Platform() {
   const health = useHealth();
+  const { me } = useSession();
 
   return (
     <Frame>
@@ -32,20 +33,17 @@ export function Settings() {
             <Row term="Event kinds" value={String(health.data?.kinds.length ?? EVENT_KINDS.length)} />
           </Panel>
 
-          <Panel title="Projects">
-            {(projects.data?.projects ?? []).map((project) => (
+          <Panel title="What you can reach">
+            {(me?.projects ?? []).map((project) => (
               <Row
                 key={project.id}
-                term={project.slug}
-                value={`${count(project.runs)} runs, ${count(project.keys)} ${
-                  project.keys === 1 ? "key" : "keys"
-                }`}
+                term={`${project.org_name} / ${project.name}`}
+                value={`${count(project.runs)} runs, you are ${project.role}`}
               />
             ))}
-            {projects.data?.projects.length === 0 ? (
+            {me && me.projects.length === 0 ? (
               <p className="measure px-3 py-2 type-caption text-text-2">
-                No project exists yet. Create one with{" "}
-                <code className="code">blackboardxray project production</code>.
+                No project you can read. Ask an admin of your organization.
               </p>
             ) : null}
           </Panel>
@@ -53,12 +51,9 @@ export function Settings() {
           <Panel title="Connecting an application">
             <div className="px-3 py-2">
               <p className="measure pb-2 type-caption text-text-2">
-                A key is shown once. The database holds its hash, so the platform can check a
-                token it is shown and cannot show one it was given.
+                Keys are made in a project's own settings, and each is shown
+                once.
               </p>
-              <pre className="code overflow-x-auto rounded-sm border border-hairline bg-well p-2">
-                <code>{"blackboardxray key production"}</code>
-              </pre>
               <p className="measure py-2 type-caption text-text-2">
                 Then wrap the model where it is created. The library is not modified and nothing
                 else about the application changes.
@@ -70,9 +65,10 @@ export function Settings() {
           </Panel>
 
           <Panel title="What this platform does not do">
-            <Limit label="It does not authenticate a reader">
-              Ingestion needs a key. Reading is open to whoever can reach the server, so put it
-              behind whatever already fronts your internal tools.
+            <Limit label="It does not encrypt what it holds">
+              A contribution recorded here sits in Postgres as it arrived. Whoever can read
+              the database can read it, so give the platform its own and back it up like one
+              holding production data.
             </Limit>
             <Limit label="A contribution is truncated past its limit">
               Content is recorded by default, up to 4kB. Passing content_limit=0 records the size

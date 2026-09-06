@@ -15,7 +15,7 @@ import { AlertTriangle } from "lucide-react";
 import { Frame } from "@/components/Frame";
 import { cn } from "@/lib/cn";
 import { ago, count, duration } from "@/lib/format";
-import { useAgent, useAgents } from "@/lib/api";
+import { useAgent, useAgents, useProjectId } from "@/lib/api";
 
 const COLUMNS = "cols-agents";
 
@@ -116,6 +116,7 @@ export function Agents() {
 }
 
 function AgentPanel({ name, onClose }: { name: string; onClose: () => void }) {
+  const project = useProjectId();
   const agent = useAgent(name);
   return (
     <aside
@@ -144,7 +145,7 @@ function AgentPanel({ name, onClose }: { name: string; onClose: () => void }) {
             {agent.data.runs_seen.map((run) => (
               <Link
                 key={run.board_id}
-                to={`/boards/${encodeURIComponent(run.board_id)}`}
+                to={`/p/${project}/boards/${encodeURIComponent(run.board_id)}`}
                 className="row move-state flex items-center gap-2 px-3 py-1.5 hover:bg-hover"
               >
                 <span className="code min-w-0 flex-1 truncate type-caption text-text">

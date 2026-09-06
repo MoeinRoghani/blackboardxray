@@ -228,11 +228,17 @@
   }
   .pulse { animation: bxr-pulse 2.2s var(--easing-standard) infinite; }
 
+  /* A control that is waiting. The only spinner in the product, and it turns
+     only while a request is in flight. */
+  @keyframes bxr-spin { to { transform: rotate(360deg); } }
+  .spin { animation: bxr-spin 700ms linear infinite; }
+
   @keyframes bxr-shimmer { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.75; } }
   .shimmer { animation: bxr-shimmer 1.5s var(--easing-standard) infinite; }
 
   @media (prefers-reduced-motion: reduce) {
     .move-panel, .move-state { transition: none; }
     .scrim-in, .rise, .pulse, .shimmer, .flow { animation: none; }
+    .spin { animation-duration: 2s; }
   }
 }
