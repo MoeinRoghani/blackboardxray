@@ -24,6 +24,7 @@ jobs:
     outputs:
       released: ${{ steps.please.outputs.release_created }}
       tag: ${{ steps.please.outputs.tag_name }}
+      version: ${{ steps.please.outputs.version }}
       major: ${{ steps.please.outputs.major }}
       minor: ${{ steps.please.outputs.minor }}
     steps:
@@ -52,6 +53,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      # A registry name must be lowercase and a GitHub owner need not be, so
+      # `github.repository` cannot be used as an image name directly. The build
+      # refused the tag rather than mangling it, which is the right failure and
+      # is only useful once somebody folds the case here.
+      - name: the image name, lowercased
+        id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 # v6.7.0
         id: build
         with:
@@ -65,20 +74,22 @@ jobs:
           # an ARM laptop and the other half are on an x86 server.
           platforms: linux/amd64,linux/arm64
           push: true
-          # Three tags: the exact version, the major line for somebody who
-          # wants patches without reading release notes, and latest.
+          # Four tags: the exact version, the minor line, the major line for
+          # somebody who wants fixes without reading release notes, and latest.
+          # Written without the leading `v`, because an image tag conventionally
+          # carries the version and not the git tag's name for it.
           tags: |
-            ghcr.io/${{ github.repository }}:${{ needs.please.outputs.tag }}
-            ghcr.io/${{ github.repository }}:${{ needs.please.outputs.major }}
-            ghcr.io/${{ github.repository }}:${{ needs.please.outputs.major }}.${{ needs.please.outputs.minor }}
-            ghcr.io/${{ github.repository }}:latest
+            ${{ steps.name.outputs.image }}:${{ needs.please.outputs.version }}
+            ${{ steps.name.outputs.image }}:${{ needs.please.outputs.major }}.${{ needs.please.outputs.minor }}
+            ${{ steps.name.outputs.image }}:${{ needs.please.outputs.major }}
+            ${{ steps.name.outputs.image }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: attest what was built
         uses: actions/attest-build-provenance@ef244123eb79f2f7a7e75d99086184180e6d0018 # v1.4.4
         with:
-          subject-name: ghcr.io/${{ github.repository }}
+          subject-name: ${{ steps.name.outputs.image }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
@@ -103,4 +114,7 @@ jobs:
           node-version: "24"
       - run: npm ci --prefix ui && npm run build --prefix ui
       - run: uv build
-      - uses: pypa/gh-action-pypi-publish@15c56dba361d8335944d31a2ecd17d700fc7bcbc # v1.12.2
+      # The twine this bundles has to understand the metadata hatchling
+      # writes. v1.12.2 shipped one that predates Metadata-Version 2.5 and
+      # reported the name as missing from a wheel that plainly has one.
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2

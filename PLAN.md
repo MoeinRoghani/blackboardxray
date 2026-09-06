@@ -185,14 +185,11 @@ What is deliberately not built, and why, is at the end of
 rate limiting that is per process, and one Postgres rather than four stateful
 services.
 
-One thing is unverified locally and is worth saying rather than assuming. The
-container image has never been built on this machine: the registry is not
-reachable from here, so `docker pull` returns nothing and the build cannot
-start. What was verified instead is every step it is made of, separately.
-`npm ci` installs from the committed lockfile, `npm run build` produces the
-interface, and the wheel was installed into a clean environment and watched
-migrate a database and serve its own assets. The image itself is first built by
-the `compose` job in CI, which brings the stack up and walks the quickstart.
+The container image cannot be built on this machine, because the registry is
+not reachable from it. It is built by the `compose` job in CI, which brings the
+whole stack up and walks the quickstart against it, and **that job passes**. So
+the image builds, the interface is served from it, and the first run screen
+makes a key that ingests, all verified somewhere other than here.
 
 The interface is done and scoped: a project is in the path, everything under
 `/p/:projectId` needs a session, and the three screens before a session
@@ -240,7 +237,7 @@ green.
 
 | # | Step | Status |
 | --- | --- | --- |
-| G1 | The branch is `main`, the remote is set, and the history is pushed. Every workflow triggers on `main` and none of them has ever run | |
+| G1 | The branch is `main`, the remote is set, and the history is pushed. Every workflow triggers on `main` and none of them has ever run | done |
 | G2 | `uv.lock`, so CI and a contributor install the same versions rather than whatever resolved that morning | done |
 | G3 | `CONTRIBUTING.md`: the change flow as it actually runs, the parenthesis rule, and how to run a database backed test | done |
 | G4 | `SECURITY.md`: what is in scope, where to send a report privately, and what this platform deliberately does not defend against | done |
@@ -251,7 +248,7 @@ green.
 | G9 | `title-lint`: conventional titles, no parenthesis in the body, and a breaking title carrying its migration | done |
 | G10 | CodeQL over Python and TypeScript, dependency review on every pull request, `pip-audit` and `npm audit` in CI, and gitleaks | done |
 | G11 | `.editorconfig`, `.gitattributes` marking generated files, and `.pre-commit-config.yaml` running the same gates CI runs | done |
-| G12 | Repository settings and labels, applied with `gh` rather than clicked | |
+| G12 | Repository settings and labels, applied with `gh` rather than clicked | done |
 | G13 | The README a stranger reads: what it is, what it looks like, and running it in three lines | done |
 | G14 | `docs/`: architecture, the API surface, the security model, and an ADR for each decision already made | done |
 | G15 | Build provenance on the image and a software bill of materials, so somebody can verify what they pulled | done |
