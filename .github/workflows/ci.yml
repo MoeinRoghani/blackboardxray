@@ -34,19 +34,26 @@ jobs:
       - uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb # v6.1.0
         with:
           python-version: ${{ matrix.python }}
-      - run: uv pip install --system -e ".[server,httpx]" "blackboardx>=0.11.1" pytest ruff mypy
-      - run: ruff check src tests examples
-      - run: ruff format --check src tests examples
-      - run: mypy src
+      # From the lockfile, into a virtual environment. `--system` installs into
+      # the runner's own interpreter, which Debian marks externally managed and
+      # refuses, and `--frozen` is what makes this run the versions the lock
+      # names rather than whatever resolved this morning.
+      - run: uv sync --frozen --python ${{ matrix.python }}
+      - run: uv run ruff check src tests examples
+      - run: uv run ruff format --check src tests examples
+      - run: uv run mypy src
       # The database tests skip where no server is named. Naming one here is
       # what stops them silently skipping in the only place it matters.
-      - run: python -m pytest -q --strict-markers
-        env:
-          BLACKBOARDXRAY_TEST_DSN: postgresql://xray:xray@localhost:5432/xray_test
-      - name: Refuse a run that skipped a database test
+      - name: The suite, against a real Postgres
         run: |
-          python -m pytest -q 2>&1 | tee /tmp/out
-          grep -q "skipped" /tmp/out && echo "a test skipped; the database was not reachable" && exit 1 || true
+          uv run pytest -q --strict-markers 2>&1 | tee /tmp/out
+          if grep -qE "[0-9]+ skipped" /tmp/out; then
+            echo
+            echo "A test skipped. Every skip in this suite means the database"
+            echo "was not reachable, which makes a green run a green run of"
+            echo "about a third of what there is."
+            exit 1
+          fi
         env:
           BLACKBOARDXRAY_TEST_DSN: postgresql://xray:xray@localhost:5432/xray_test
 
