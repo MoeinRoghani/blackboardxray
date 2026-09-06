@@ -257,8 +257,8 @@ green.
 
 | # | Step | Status |
 | --- | --- | --- |
-| X1 | CI green on `main`, including the compose job that has never run anywhere | |
-| X2 | The release pull request release-please opens, merged, tagging `0.1.0` | |
+| X1 | CI green on `main`, including the compose job that has never run anywhere | done |
+| X2 | The release pull request release-please opens, merged, tagging `0.1.0` | done |
 | X3 | The image on GHCR, pulled and run from the registry rather than from a build | |
 | X4 | The client on PyPI by trusted publishing, installed from the index into a clean environment | |
 | X5 | The quickstart walked from a clone nobody has touched, against the published image | |

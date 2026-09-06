@@ -24,8 +24,11 @@ permissions:
   contents: read
 
 jobs:
+  # This job always runs and its one step does not. A skipped job propagates
+  # its skip down the whole needs chain, and overriding that in each job below
+  # was tried and did not work; having nothing skipped is simpler than
+  # explaining to every downstream job that a skip upstream was expected.
   please:
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -36,6 +39,7 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@a02a34c4d625f9be7cb89156071d8567266a2445 # v4.1.3
         id: please
+        if: github.event_name == 'push'
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
@@ -44,7 +48,7 @@ jobs:
   # two below say `needs.plan` and never care which it was.
   plan:
     needs: [please]
-    if: always() && (needs.please.outputs.released == 'true' || github.event_name == 'workflow_dispatch')
+    if: needs.please.outputs.released == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.what.outputs.tag }}
@@ -66,10 +70,6 @@ jobs:
 
   image:
     needs: [plan]
-    # `please` is skipped on a dispatch, and a skip travels the whole way down a
-    # needs chain unless each job in it says otherwise. Without this the plan
-    # was computed and then nothing used it.
-    if: needs.plan.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -131,7 +131,6 @@ jobs:
 
   package:
     needs: [plan]
-    if: needs.plan.result == 'success'
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
