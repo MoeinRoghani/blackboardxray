@@ -148,6 +148,7 @@ Five, all in CI. A screen cannot make a decision the system did not.
 | `npm run typecheck` | A body field read off the wrong event kind |
 | `impeccable detect` | The mechanical design defects |
 | `pytest tests/test_wire_mirror.py` | A kind named in Python and forgotten in TypeScript |
+| `docker compose up --wait` in CI | A compose file that has drifted from the Dockerfile, which is the one break the unit tests cannot see and the worst first impression there is |
 
 Two detector findings are standing decisions rather than defects, and both were
 checked before being kept.
@@ -263,6 +264,15 @@ takes the second line.
 **The chart stacked trouble at the top.** A column flex puts its first child at
 the top, so the series were drawn in the reverse of the order they were
 declared in, and nothing shared a baseline.
+
+**The raw value gate could not see inside a grid template.** Tailwind writes a
+space as an underscore, an underscore is a word character, and the word
+boundary after a measurement therefore never matched: every value written
+inside `grid-cols-[...]` was invisible to the one gate that exists to catch it.
+The rules end at anything that is not a digit or a unit now, and a planted
+`grid-cols-[12rem_auto]` proves it. The arbitrary value rule stopped listing
+grid properties at the same time, because `minmax(0, 1fr)` is structure with no
+magnitude in it and there is no token that could replace it.
 
 ## What is deliberately absent
 

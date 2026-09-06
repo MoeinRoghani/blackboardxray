@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "python",
+      "package-name": "blackboardxray",
+      "changelog-path": "CHANGELOG.md",
+      "include-component-in-tag": false,
+      "bump-minor-pre-major": true,
+      "extra-files": ["ui/package.json"]
+    }
+  },
+  "changelog-sections": [
+    { "type": "feat", "section": "What is new" },
+    { "type": "fix", "section": "What was fixed" },
+    { "type": "perf", "section": "What got faster" },
+    { "type": "docs", "section": "Documentation" },
+    { "type": "refactor", "hidden": true },
+    { "type": "test", "hidden": true },
+    { "type": "chore", "hidden": true },
+    { "type": "ci", "hidden": true }
+  ]
+}

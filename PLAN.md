@@ -164,16 +164,26 @@ would say how many projects exist.
 | P2 | Ingest limits: per key rate, payload ceiling, and a 429 the client already knows how to obey | done |
 | P3 | Graceful shutdown, and a request identifier through every log line. Liveness against readiness is already built: `/api/v1/health` answers whether the process runs and `/api/v1/ready` whether it can serve, because an orchestrator restarts one and drains the other | done |
 | P4 | An audit trail of who changed what, because a role change nobody can attribute is a role change nobody can review | done |
-| R1 | release-please, conventional titles, one place the version lives | |
-| R2 | A multi architecture image on every tag, and a compose file that runs the whole platform from a clone | |
-| R3 | The client on PyPI, published by the workflow rather than by a person | |
-| R4 | The documentation a stranger needs: quickstart, every environment variable, upgrading, backup and restore, the security model, and the volume ceiling | |
+| R1 | release-please, conventional titles, one place the version lives | done |
+| R2 | A multi architecture image on every tag, and a compose file that runs the whole platform from a clone | done |
+| R3 | The client on PyPI, published by the workflow rather than by a person | done |
+| R4 | The documentation a stranger needs: quickstart, every environment variable, upgrading, backup and restore, the security model, and the volume ceiling | done |
 | R5 | An upgrade test: raise a database written by the previous version and assert the record survived | done |
 
 ## Where things stand
 
-Everything through `P4` is built, tested and committed. Only `R1` to `R4`
-remain; `R5` was built during `M1`.
+Every row is done.
+
+The platform is a clone and one command. `docker compose up -d` brings up
+Postgres and the server, and the first screen makes an owner, an organization,
+a project and a key. A release tags itself from the commit subjects on main,
+builds a two architecture image to GHCR, and publishes the client to PyPI by
+trusted publishing rather than by a token somebody pasted into a secret.
+
+What is deliberately not built, and why, is at the end of
+`docs/self-hosting.md`: no encryption at rest, no backfill of dropped events,
+rate limiting that is per process, and one Postgres rather than four stateful
+services.
 
 The interface is done and scoped: a project is in the path, everything under
 `/p/:projectId` needs a session, and the three screens before a session

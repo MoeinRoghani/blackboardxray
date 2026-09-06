@@ -52,6 +52,11 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/blackboardxray"]
+# The built interface is gitignored, because it is generated and does not
+# belong in the history. Hatchling excludes what version control ignores, so
+# without this the wheel shipped a server that served nothing: `artifacts`
+# names the generated paths that are part of the distribution anyway.
+artifacts = ["src/blackboardxray/server/web/**"]
 
 [tool.ruff]
 line-length = 88

@@ -1,16 +1,24 @@
-# A whole platform, from nothing, in one command.
+# The whole platform, from a clone, in one command.
 #
+#   git clone https://github.com/MoeinRoghani/blackboardxray
+#   cd blackboardxray
 #   docker compose up -d
-#   docker compose exec xray blackboardxray key production
 #
-# The key is printed once. Point an application at http://localhost:8900 with
-# it and its runs appear.
+# Then open http://localhost:8900 and the first screen makes your account, an
+# organization, a project and a key an application can send with.
+#
+# Two services and no more. There is no cache to run, no queue, no object store
+# and no secret to generate: sessions are opaque identifiers held in Postgres,
+# and every credential is stored as a digest. Postgres is the only thing here
+# holding state, so it is the only thing to back up.
 
 services:
   postgres:
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: blackboardxray
+      # Reachable only on this compose network, and not published. Change it
+      # anyway if this file is going anywhere near a shared machine.
       POSTGRES_PASSWORD: blackboardxray
       POSTGRES_DB: blackboardxray
     volumes:
@@ -20,16 +28,47 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    restart: unless-stopped
 
   xray:
+    # Swap `build: .` for the published image to run a release rather than the
+    # working copy:
+    #   image: ghcr.io/moeinroghani/blackboardxray:1
     build: .
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       BLACKBOARDXRAY_DATABASE_URL: postgresql://blackboardxray:blackboardxray@postgres:5432/blackboardxray
+
+      # Signing up is off, so the setup screen makes the first account and
+      # everybody after them arrives by invitation. Turn it on only where the
+      # server is reachable by exactly the people who should have accounts.
+      # BLACKBOARDXRAY_ALLOW_SIGNUP: "true"
+
+      # Behind a proxy on another hostname, name the origins the interface is
+      # served from. Not needed when it is reached at the address below.
+      # BLACKBOARDXRAY_ALLOWED_ORIGINS: https://xray.example.com
+
+      # A deployment with nobody to open a browser can be given its owner, its
+      # organization, its project and its key here. Applied only where each is
+      # absent, so a restart does not undo a change made afterwards.
+      # BLACKBOARDXRAY_INIT_ORG_SLUG: acme
+      # BLACKBOARDXRAY_INIT_ORG_NAME: Acme
+      # BLACKBOARDXRAY_INIT_PROJECT_SLUG: production
+      # BLACKBOARDXRAY_INIT_PROJECT_NAME: Production
+      # BLACKBOARDXRAY_INIT_USER_EMAIL: ops@example.com
+      # BLACKBOARDXRAY_INIT_USER_PASSWORD: a long enough phrase
+      # BLACKBOARDXRAY_INIT_API_KEY: bxr_generate_this_yourself_and_keep_it
     ports:
       - "8900:8900"
+    healthcheck:
+      # Readiness, not liveness: this answers whether the database is there.
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8900/api/v1/ready', timeout=3).status == 200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
     restart: unless-stopped
 
 volumes:

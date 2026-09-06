@@ -15,25 +15,42 @@ already saw them.
 
 So the record is observable and the run is not. That is what this is for.
 
-## Install and run
+## Run it
+
+```
+git clone https://github.com/MoeinRoghani/blackboardxray
+cd blackboardxray
+docker compose up -d
+```
+
+Open <http://localhost:8900>. The first screen makes your account, an
+organization, a project, and a key to send with. Everybody after you arrives by
+an invitation link, because this platform has no mail server and does not want
+one.
+
+Two containers and nothing else. No cache, no queue, no object store, and no
+secret to generate: sessions are opaque identifiers held in Postgres and every
+credential is stored as a digest. Postgres is the only thing holding state, so
+it is the only thing to back up.
+
+Without Docker:
 
 ```
 pip install 'blackboardxray[server]'
 createdb blackboardxray
 export BLACKBOARDXRAY_DATABASE_URL=postgresql://localhost/blackboardxray
-blackboardxray key production
 blackboardxray serve
 ```
 
-`key` prints a token once. The database holds its hash and cannot print it
-again.
+Every environment variable, the proxy headers that matter, backup, upgrading
+and the volume ceiling are in [docs/self-hosting.md](docs/self-hosting.md).
 
 ## Observe a run
 
 ```python
 from blackboardxray import Xray
 
-xray = Xray(endpoint="http://localhost:8900", token="bxr_...")
+xray = Xray(endpoint="http://localhost:8900", token="bxr_...")  # the key from setup
 
 model = xray.create_model(
     board_id="incident-4471",
@@ -76,18 +93,38 @@ A contribution's content is recorded, truncated past 4kB. A deployment whose
 contributions may not leave the process passes `content_limit=0`, which records
 the size and the shape and none of the content.
 
+## Who can see what
+
+An organization owns projects. A person is a member of an organization with a
+role, and a role on one project replaces it in either direction: it raises a
+member to admin on the project they run, and it is how somebody given `none` at
+the organization gets exactly one project and nothing else.
+
+| Role | May |
+| --- | --- |
+| `owner` | Everything, including deleting the organization |
+| `admin` | Projects, keys and people. Cannot touch owners |
+| `member` | Read every run, including what was written |
+| `viewer` | Read what happened, and not what was written |
+| `none` | Nothing, except a project they were given explicitly |
+
+A viewer is the one worth explaining. A contribution is your application's own
+data and may hold anything it is allowed to hold, so the lowest role that can
+be handed out sees that four kilobytes of an object were admitted at sequence
+nine, and not what was in it.
+
 ## What the interface shows
 
 `blackboardxray serve` serves the interface at the same address as the API.
 
-**Boards**, at `/`, is a chart of runs opened per interval over the record of
+**Boards**, at `/p/<project>`, is a chart of runs opened per interval over the record of
 them. Clicking a bar narrows the table to the runs that bar counted; the facet
 strip between them narrows by outcome, by agent, or to the runs an agent did
 not finish, and each facet carries the count it would leave. Selecting a board
 opens a panel beside the list with what happened inside it: which agent was
 refused, on which region, and what the rule said.
 
-**A board**, at `/boards/<board_id>`, reads three ways. *Graph* draws what
+**A board**, at `/p/<project>/boards/<board_id>`, reads three ways. *Graph* draws what
 wrote to what and who was told, with a broken edge where a notification never
 arrived. *Events* is the same run as a table and is the record. *Board* is what
 was actually written. The run's own clock stays along the bottom of all three.
@@ -95,8 +132,9 @@ was actually written. The run's own clock stays along the bottom of all three.
 Every filter, the time window, the selected board and the chosen view are in
 the address, so a view is a link.
 
-Reading is not authenticated. Ingestion needs a key; put the interface behind
-whatever already fronts your internal tools.
+Reading needs an account. Ingestion needs a key. The two are separate doors:
+an application holds a key and may only write, and a person holds a session and
+may only read.
 
 ## Development
 
@@ -105,10 +143,18 @@ make setup
 make verify
 ```
 
-`examples/seed.py` runs real models through the real client. `examples/
-backfill.py` posts a day of fabricated traffic over the ingest API, so the
-interface can be looked at at the volume it is for; it is a fixture and nothing
-in a deployment runs it.
+`make verify` needs a database and skips every test that touches one without
+it, so name one:
+
+```
+createdb blackboardxray_test
+BLACKBOARDXRAY_TEST_DSN=postgresql://localhost/blackboardxray_test make verify
+```
+
+`examples/seed.py` runs real models through the real client. `examples/backfill.py`
+posts a day of fabricated traffic over the ingest API, so the interface can be
+looked at at the volume it is for; it is a fixture and nothing in a deployment
+runs it.
 
 ## License
 
