@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.0](https://github.com/MoeinRoghani/blackboardxray/compare/v0.1.0...v0.2.0) (2026-09-06)
+
+
+### What is new
+
+* close the three gaps left in the platform ([d268481](https://github.com/MoeinRoghani/blackboardxray/commit/d26848138a443830dcc733a89f10d08f64168cac))
+
+
+### Documentation
+
+* point at what is published ([97aca1f](https://github.com/MoeinRoghani/blackboardxray/commit/97aca1f578f0da2fa58f0bc04c4ccf94dbaded33))
+* point at what is published ([bcc7229](https://github.com/MoeinRoghani/blackboardxray/commit/bcc72299300e4b7c74d7bea2f589a4823fc7a6cb))
+* the release was walked, not assumed ([03519a9](https://github.com/MoeinRoghani/blackboardxray/commit/03519a93c30b76e6db9b636fe0f8bc9662a64c5b))
+
 ## 0.1.0 (2026-09-06)
 
 
