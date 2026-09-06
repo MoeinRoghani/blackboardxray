@@ -52,6 +52,14 @@ dev = [
     "ruff>=0.9",
 ]
 
+# `uv build` builds the sdist and then builds the wheel from that sdist, so an
+# artifact missing here is missing from the wheel too however carefully the
+# wheel target names it. The interface is generated and gitignored, and this is
+# what carries it into both.
+[tool.hatch.build.targets.sdist]
+artifacts = ["src/blackboardxray/server/web/**"]
+exclude = ["ui/node_modules", "ui/dist", ".venv"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/blackboardxray"]
 # The built interface is gitignored, because it is generated and does not
