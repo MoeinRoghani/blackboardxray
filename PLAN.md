@@ -122,18 +122,18 @@ does not get a second person.
 | # | Step | Status |
 | --- | --- | --- |
 | M1 | A numbered migration runner: an advisory lock, one transaction per file, and a checksum that refuses a migration edited after it ran | done |
-| I1 | `users` and `sessions`, with scrypt hashing tagged by algorithm so the cost can be raised later without locking anyone out | |
-| I2 | Session lifecycle: opaque token hashed at rest, sliding expiry, revocation as a delete | |
-| I3 | The auth routes, the cookie, an origin check on every unsafe method, and a lockout that survives a restart | |
-| T1 | `organizations`, `memberships`, per project role overrides, `invites`, and a public identifier for every object a URL names | |
-| T2 | The migration that gives existing projects an organization to belong to | |
-| T3 | The role model, and `effective_role` where a project role beats an organization role | |
-| A1 | Every read authorized: a session, a membership, a role, and a 403 that says which | |
-| A2 | Keys gain revocation and a last used stamp that does not write on every request | |
-| A3 | The administration API: organizations, projects, keys, members, invites | |
-| O1 | First run. No users means one reachable page, which creates the owner, an organization, a project and the first key | |
-| O2 | Headless initialization from the environment, idempotent, for a compose file or a chart | |
-| O3 | Signup is invite only unless a deployment opens it | |
+| I1 | `users` and `sessions`, with scrypt hashing tagged by algorithm so the cost can be raised later without locking anyone out | done |
+| I2 | Session lifecycle: opaque token hashed at rest, sliding expiry, revocation as a delete | done |
+| I3 | The auth routes, the cookie, an origin check on every unsafe method, and a lockout that survives a restart | done |
+| T1 | `organizations`, `memberships`, per project role overrides, `invites`, and a public identifier for every object a URL names | done |
+| T2 | The migration that gives existing projects an organization to belong to | done |
+| T3 | The role model, and `effective_role` where a project role beats an organization role | done |
+| A1 | Every read authorized: a session, a membership, a role, and a 403 that says which | done |
+| A2 | Keys gain revocation and a last used stamp that does not write on every request | done |
+| A3 | The administration API: organizations, projects, keys, members, invites | done |
+| O1 | First run. No users means one reachable page, which creates the owner, an organization, a project and the first key | done |
+| O2 | Headless initialization from the environment, idempotent, for a compose file or a chart | done |
+| O3 | Signup is invite only unless a deployment opens it | done |
 | U7 | The unauthenticated shell: sign in, first run, accept an invite | |
 | U8 | The organization and project switcher, and the account menu | |
 | U9 | Project settings: keys created and shown once, revoked, and retention | |

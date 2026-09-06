@@ -8,6 +8,7 @@ with what ran.
 
 from __future__ import annotations
 
+import shutil
 import threading
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,7 @@ import pytest
 from psycopg.rows import dict_row
 
 from blackboardxray.server.migrate import (
+    _HERE,
     MigrationChangedError,
     MigrationError,
     SchemaAheadError,
@@ -221,3 +223,86 @@ class TestSeveralReplicas:
             cursor.execute("SELECT count(*)::int AS rows FROM probe_race")
             row = cursor.fetchone()
             assert row is not None and row["rows"] == 1
+
+
+class TestUpgradingAnInstallThatExists:
+    """The guarantee self hosting turns on: an upgrade keeps the record."""
+
+    def test_a_database_at_the_first_migration_upgrades_with_its_data(
+        self, blank, tmp_path: Path
+    ) -> None:
+        # Somebody is already running this. They pull a new image and restart.
+        # Every run they had, and every key that was already sending, has to
+        # still be there afterwards, and the projects that had no organization
+        # have to have been given one.
+        shutil.copy(_HERE / "0001_initial.sql", tmp_path / "0001_initial.sql")
+        assert migrate(blank, tmp_path) == [1]
+
+        with blank.cursor(row_factory=dict_row) as cursor:
+            cursor.execute(
+                "INSERT INTO xray_projects (slug, name)"
+                " VALUES ('production', 'Production') RETURNING id"
+            )
+            row = cursor.fetchone()
+            assert row is not None
+            project = row["id"]
+            cursor.execute(
+                "INSERT INTO xray_api_keys (project_id, name, prefix, token_hash)"
+                " VALUES (%s, 'ci', 'bxr_aaaa', 'a-hash')",
+                (project,),
+            )
+            cursor.execute(
+                "INSERT INTO xray_runs (project_id, board_id)"
+                " VALUES (%s, 'incident-1')",
+                (project,),
+            )
+        blank.commit()
+
+        assert migrate(blank) == [one.version for one in known()][1:]
+
+        with blank.cursor(row_factory=dict_row) as cursor:
+            cursor.execute(
+                "SELECT p.slug, p.public_id, o.slug AS org FROM xray_projects p"
+                " JOIN xray_organizations o ON o.id = p.org_id"
+            )
+            found = cursor.fetchone()
+            assert found is not None
+            assert found["slug"] == "production"
+            assert found["org"] == "default"
+            assert found["public_id"].startswith("proj_")
+
+            cursor.execute("SELECT count(*)::int AS n FROM xray_runs")
+            runs = cursor.fetchone()
+            assert runs is not None and runs["n"] == 1
+
+            # The key that was already sending still is. An upgrade that
+            # silently stopped ingestion would be found by whoever was relying
+            # on the platform to tell them things had stopped.
+            cursor.execute("SELECT token_hash, disabled_at FROM xray_api_keys")
+            key = cursor.fetchone()
+            assert key is not None
+            assert key["token_hash"] == "a-hash"
+            assert key["disabled_at"] is None
+
+    def test_two_organizations_may_each_have_a_project_called_production(
+        self, blank
+    ) -> None:
+        # The slug identifies a project inside its organization. Making it
+        # unique across the install would mean one team's naming stopped
+        # another team from using the obvious word.
+        migrate(blank)
+        with blank.cursor(row_factory=dict_row) as cursor:
+            for slug in ("one", "two"):
+                cursor.execute(
+                    "INSERT INTO xray_organizations (public_id, slug, name)"
+                    " VALUES (%s, %s, %s) RETURNING id",
+                    (f"org_{slug}", slug, slug),
+                )
+                row = cursor.fetchone()
+                assert row is not None
+                cursor.execute(
+                    "INSERT INTO xray_projects (public_id, org_id, slug, name)"
+                    " VALUES (%s, %s, 'production', 'Production')",
+                    (f"proj_{slug}", row["id"]),
+                )
+        blank.commit()

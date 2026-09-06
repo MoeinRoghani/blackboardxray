@@ -1,24 +1,28 @@
-"""The platform's HTTP surface: one route table, and the interface behind it.
+"""The platform's HTTP surface: three route tables, and the interface behind it.
 
-Ingestion is authenticated, because a key is how the platform knows which
-deployment is sending and because a write matters. Reading is not, and that is
-stated in the documentation rather than left to be discovered: this is an
-internal tool, it is expected to sit behind whatever already fronts your
-internal tools, and a gateway is where a policy about who may read belongs.
+Two doors, and they are not the same.
 
-Every read answers plain JSON. The built interface is served from `web/`
-where it exists, so the platform is one process and one container rather than
-a server and a separate static host.
+**An application sends** with a key belonging to one project. It is a machine
+holding a bearer token, and it may only write.
+
+**A person reads** with a session cookie, and every read goes through a
+membership and a role first. Reading was open to whoever could reach the port
+until this platform grew people, which is fine for a laptop and is not a thing
+to publish.
+
+The routes are split by what they answer. `routes/auth.py` is getting in,
+`routes/admin.py` is running the place, `routes/data.py` is what a run did.
+Ingestion, health and the built interface stay here, because they are the three
+things that are not about a person at all.
 """
 
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -26,28 +30,15 @@ from fastapi.staticfiles import StaticFiles
 
 from blackboardxray.events import SCHEMA_VERSION, Event, EventError, EventKind
 from blackboardxray.server.db import Database, Project
+from blackboardxray.server.provision import provision
+from blackboardxray.server.routes import admin, auth, data
+from blackboardxray.server.security import Guard
 from blackboardxray.server.settings import Settings
 
 logger = logging.getLogger("blackboardxray.server")
 
 #: The most events one ingestion request carries.
 MAX_BATCH = 1000
-
-#: How many rows a read answers with when the caller names no limit, and the
-#: most it answers with whatever the caller asks for.
-DEFAULT_LIMIT = 50
-MAX_LIMIT = 1000
-DEFAULT_EVENT_LIMIT = 500
-MAX_EVENT_LIMIT = 5000
-
-#: The shape of the histogram the index draws when the caller names none: one
-#: bar a minute for the last hour. The ceiling on the bucket count is what the
-#: chart can draw as separate bars at a plausible width, not what the database
-#: can group; asking for more returns bars an operator cannot tell apart.
-DEFAULT_STEP = 60.0
-MAX_STEP = 86_400.0
-DEFAULT_BUCKETS = 60
-MAX_BUCKETS = 240
 
 _WEB = Path(__file__).with_name("web")
 
@@ -75,9 +66,13 @@ def build(settings: Settings, database: Database | None = None) -> FastAPI:
             allow_headers=["authorization", "content-type"],
         )
     app.state.db = store
+    app.state.settings = settings
 
-    def db() -> Database:
-        return store
+    # What a compose file or a chart asked to exist, before anybody arrives.
+    for line in provision(store, settings.provision):
+        logger.info("blackboardxray provisioned %s", line)
+
+    guard = Guard(store, settings.allowed_origins)
 
     def sending(
         authorization: str = Header(default=""),
@@ -97,33 +92,6 @@ def build(settings: Settings, database: Database | None = None) -> FastAPI:
             )
         return project
 
-    def reading(project: str | None = Query(default=None)) -> Project:
-        """The project a read is about.
-
-        Named by the caller, or the only one where there is one. A server
-        watching a single deployment therefore needs no parameter anywhere.
-        """
-        projects = store.list_projects()
-        if not projects:
-            raise HTTPException(
-                status_code=404,
-                detail={
-                    "error": "no_project",
-                    "detail": "no project exists yet. Create one with"
-                    " `blackboardxray project <slug>`",
-                },
-            )
-        if project is None:
-            first = projects[0]
-            return Project(id=first["id"], slug=first["slug"], name=first["name"])
-        for one in projects:
-            if one["slug"] == project:
-                return Project(id=one["id"], slug=one["slug"], name=one["name"])
-        raise HTTPException(
-            status_code=404,
-            detail={"error": "unknown_project", "detail": f"no project {project!r}"},
-        )
-
     @app.get("/api/v1/health")
     def health() -> dict[str, Any]:
         return {
@@ -131,6 +99,22 @@ def build(settings: Settings, database: Database | None = None) -> FastAPI:
             "schema_version": SCHEMA_VERSION,
             "kinds": list(EventKind.ALL),
         }
+
+    @app.get("/api/v1/ready")
+    def ready() -> JSONResponse:
+        """Readiness. Answers whether this process can serve a request.
+
+        Separate from liveness because an orchestrator does different things
+        with the two answers: a process that is alive and not ready should stop
+        receiving traffic, and one that is not alive should be restarted.
+        Answering the same to both turns a database outage into a restart loop.
+        """
+        if store.healthy():
+            return JSONResponse({"status": "ready"})
+        return JSONResponse(
+            {"error": "database_unreachable", "detail": "the database did not answer"},
+            status_code=503,
+        )
 
     @app.post("/api/v1/ingest", status_code=202)
     async def ingest(
@@ -170,133 +154,9 @@ def build(settings: Settings, database: Database | None = None) -> FastAPI:
             "unreadable": refused,
         }
 
-    @app.get("/api/v1/projects")
-    def projects(store_: Database = Depends(db)) -> dict[str, Any]:
-        return {"projects": store_.list_projects()}
-
-    @app.get("/api/v1/overview")
-    def overview(project: Project = Depends(reading)) -> dict[str, Any]:
-        return {"project": project.slug, **store.overview(project.id)}
-
-    @app.get("/api/v1/histogram")
-    def histogram(
-        project: Project = Depends(reading),
-        step: float = Query(default=DEFAULT_STEP, ge=1.0, le=MAX_STEP),
-        buckets: int = Query(default=DEFAULT_BUCKETS, ge=2, le=MAX_BUCKETS),
-        outcome: str | None = Query(default=None),
-        agent: str | None = Query(default=None),
-        search: str | None = Query(default=None),
-        unfinished: bool = Query(default=False),
-    ) -> dict[str, Any]:
-        return store.histogram(
-            project.id,
-            step_seconds=step,
-            buckets=buckets,
-            outcome=outcome,
-            agent=agent,
-            search=search,
-            unfinished=unfinished,
-        )
-
-    @app.get("/api/v1/facets")
-    def facets(
-        project: Project = Depends(reading),
-        agent: str | None = Query(default=None),
-        search: str | None = Query(default=None),
-        since: datetime | None = Query(default=None),
-        until: datetime | None = Query(default=None),
-    ) -> dict[str, Any]:
-        return store.facets(
-            project.id, agent=agent, search=search, since=since, until=until
-        )
-
-    @app.get("/api/v1/runs")
-    def runs(
-        project: Project = Depends(reading),
-        limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
-        offset: int = Query(default=0, ge=0),
-        outcome: str | None = Query(default=None),
-        agent: str | None = Query(default=None),
-        search: str | None = Query(default=None),
-        unfinished: bool = Query(default=False),
-        since: datetime | None = Query(default=None),
-        until: datetime | None = Query(default=None),
-    ) -> dict[str, Any]:
-        found = store.list_runs(
-            project.id,
-            limit=limit,
-            offset=offset,
-            outcome=outcome,
-            agent=agent,
-            search=search,
-            unfinished=unfinished,
-            since=since,
-            until=until,
-        )
-        return {
-            "runs": found,
-            "total": store.count_runs(
-                project.id,
-                outcome=outcome,
-                agent=agent,
-                search=search,
-                unfinished=unfinished,
-                since=since,
-                until=until,
-            ),
-            "limit": limit,
-            "offset": offset,
-        }
-
-    @app.get("/api/v1/runs/{board_id:path}/events")
-    def events(
-        board_id: str,
-        project: Project = Depends(reading),
-        after: int = Query(default=0, ge=0),
-        limit: int = Query(default=DEFAULT_EVENT_LIMIT, ge=1, le=MAX_EVENT_LIMIT),
-        kind: list[str] | None = Query(default=None),
-        agent: str | None = Query(default=None),
-    ) -> dict[str, Any]:
-        if store.get_run(project.id, board_id) is None:
-            raise HTTPException(
-                status_code=404,
-                detail={"error": "unknown_run", "detail": f"no run on {board_id!r}"},
-            )
-        found = store.list_events(
-            project.id, board_id, limit=limit, after=after, kinds=kind, agent=agent
-        )
-        return {
-            "events": found,
-            "has_more": len(found) == limit,
-            "next_after": found[-1]["id"] if found else after,
-        }
-
-    @app.get("/api/v1/runs/{board_id:path}")
-    def run(board_id: str, project: Project = Depends(reading)) -> dict[str, Any]:
-        found = store.get_run(project.id, board_id)
-        if found is None:
-            raise HTTPException(
-                status_code=404,
-                detail={"error": "unknown_run", "detail": f"no run on {board_id!r}"},
-            )
-        return found
-
-    @app.get("/api/v1/agents")
-    def agents(
-        project: Project = Depends(reading),
-        limit: int = Query(default=100, ge=1, le=MAX_LIMIT),
-    ) -> dict[str, Any]:
-        return {"agents": store.list_agents(project.id, limit=limit)}
-
-    @app.get("/api/v1/agents/{name}")
-    def agent(name: str, project: Project = Depends(reading)) -> dict[str, Any]:
-        found = store.get_agent(project.id, name)
-        if found is None:
-            raise HTTPException(
-                status_code=404,
-                detail={"error": "unknown_agent", "detail": f"no agent {name!r}"},
-            )
-        return found
+    app.include_router(auth.router(store, guard, settings))
+    app.include_router(admin.router(store, guard))
+    app.include_router(data.router(store, guard))
 
     @app.exception_handler(HTTPException)
     async def readable(request: Request, raised: HTTPException) -> JSONResponse:
@@ -314,7 +174,9 @@ def build(settings: Settings, database: Database | None = None) -> FastAPI:
             if isinstance(carried, dict)
             else {"error": "request_failed", "detail": str(carried)}
         )
-        return JSONResponse(status_code=raised.status_code, content=detail)
+        return JSONResponse(
+            status_code=raised.status_code, content=detail, headers=raised.headers
+        )
 
     _serve_interface(app)
     return app

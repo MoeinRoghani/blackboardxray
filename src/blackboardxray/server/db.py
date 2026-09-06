@@ -10,12 +10,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-import secrets
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from psycopg import Connection
 from psycopg.rows import dict_row
@@ -24,6 +23,9 @@ from psycopg_pool import ConnectionPool
 
 from blackboardxray.events import Event, EventKind
 from blackboardxray.server.migrate import migrate
+
+if TYPE_CHECKING:  # pragma: no cover
+    from blackboardxray.server.people import People
 
 #: What a token looks like. The prefix is shown in the interface; the rest is
 #: shown once, when the key is made, and never again.
@@ -61,8 +63,18 @@ class Database:
             open=True,
             kwargs={"autocommit": False},
         )
+        self._people: People | None = None
         self._pool.wait(timeout=10)
         self.migrate()
+
+    @property
+    def people(self) -> People:
+        """Users, organizations, projects and keys, over the same pool."""
+        if self._people is None:
+            from blackboardxray.server.people import People
+
+            self._people = People(self)
+        return self._people
 
     @contextmanager
     def connection(self) -> Iterator[Connection[Any]]:
@@ -88,75 +100,41 @@ class Database:
 
     # Projects and keys
 
-    def create_project(self, slug: str, name: str | None = None) -> Project:
-        with self.connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "INSERT INTO xray_projects (slug, name) VALUES (%s, %s)"
-                    " ON CONFLICT (slug) DO UPDATE SET name = xray_projects.name"
-                    " RETURNING id, slug, name",
-                    (slug, name or slug),
-                )
-                row = cursor.fetchone()
-            connection.commit()
-        assert row is not None
-        return Project(id=row["id"], slug=row["slug"], name=row["name"])
-
-    def list_projects(self) -> list[dict[str, Any]]:
-        return self._rows(
-            "SELECT p.id, p.slug, p.name, p.created_at,"
-            " (SELECT count(*) FROM xray_runs r WHERE r.project_id = p.id) AS runs,"
-            " (SELECT count(*) FROM xray_api_keys k WHERE k.project_id = p.id) AS keys"
-            " FROM xray_projects p ORDER BY p.slug"
-        )
-
-    def issue_key(self, project_id: int, name: str = "") -> IssuedKey:
-        """Makes a key and answers with its token, which is not stored."""
-        token = TOKEN_PREFIX + secrets.token_hex(20)
-        prefix = token[: len(TOKEN_PREFIX) + 6]
-        with self.connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "INSERT INTO xray_api_keys (project_id, name, prefix, token_hash)"
-                    " VALUES (%s, %s, %s, %s)",
-                    (project_id, name, prefix, _hash(token)),
-                )
-            connection.commit()
-        return IssuedKey(token=token, prefix=prefix, name=name)
-
-    def list_keys(self, project_id: int) -> list[dict[str, Any]]:
-        return self._rows(
-            "SELECT id, name, prefix, created_at, last_used_at FROM xray_api_keys"
-            " WHERE project_id = %s ORDER BY created_at DESC",
-            (project_id,),
-        )
-
     def authenticate(self, token: str) -> Project | None:
-        """Answers the project a token names, or nothing where it names none."""
+        """Answers the project a token names, or nothing where it names none.
+
+        The last used stamp is written at most once a minute per key. It was
+        written on every request, which turned the hottest path in the platform
+        into an update and made a busy sender contend on one row. Nobody reads
+        that column to the second.
+        """
         if not token:
             return None
         with self.connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "UPDATE xray_api_keys SET last_used_at = now()"
-                    " WHERE token_hash = %s RETURNING project_id",
+                    "SELECT k.project_id, p.slug, p.name,"
+                    " k.last_used_at < now() - interval '1 minute'"
+                    "   OR k.last_used_at IS NULL AS stale"
+                    " FROM xray_api_keys k JOIN xray_projects p"
+                    "   ON p.id = k.project_id"
+                    " WHERE k.token_hash = %s AND k.disabled_at IS NULL",
                     (_hash(token),),
                 )
                 found = cursor.fetchone()
                 if found is None:
                     connection.rollback()
                     return None
-                cursor.execute(
-                    "SELECT id, slug, name FROM xray_projects WHERE id = %s",
-                    (found["project_id"],),
-                )
-                project = cursor.fetchone()
+                if found["stale"]:
+                    cursor.execute(
+                        "UPDATE xray_api_keys SET last_used_at = now()"
+                        " WHERE token_hash = %s",
+                        (_hash(token),),
+                    )
             connection.commit()
-        if project is None:
-            return None
-        return Project(id=project["id"], slug=project["slug"], name=project["name"])
-
-    # Ingestion
+        return Project(
+            id=int(found["project_id"]), slug=found["slug"], name=found["name"]
+        )
 
     def ingest(self, project_id: int, events: Sequence[Event]) -> int:
         """Stores a batch and moves the counters, in one transaction.
@@ -504,10 +482,22 @@ class Database:
         one["writes_to"] = body.get("writes_to")
         return one
 
-    def _rows(self, statement: str, args: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
+    def rows(self, statement: str, args: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
+        """Runs a read and returns every row of it."""
         with self.connection() as connection, connection.cursor() as cursor:
             cursor.execute(statement, args)
             return list(cursor.fetchall())
+
+    def run(self, statement: str, args: tuple[Any, ...] = ()) -> int:
+        """Runs a write, commits it, and answers how many rows it touched."""
+        with self.connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(statement, args)
+                touched = cursor.rowcount
+            connection.commit()
+        return int(touched)
+
+    _rows = rows
 
 
 def _move_counters(

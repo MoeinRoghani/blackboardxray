@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -11,6 +12,8 @@ from fastapi.testclient import TestClient
 from blackboardxray.events import Event, EventKind
 from blackboardxray.server.app import MAX_BATCH, build
 from blackboardxray.server.settings import Settings
+
+PASSWORD = "a long enough phrase"
 
 
 @pytest.fixture
@@ -21,9 +24,40 @@ def client(database: Any, dsn: str):
 
 
 @pytest.fixture
-def token(database: Any) -> str:
-    project = database.create_project("production", "Production")
-    return database.issue_key(project.id, "test").token
+def owner(database: Any):
+    """The person who set the install up, and what they own."""
+    people = database.people
+    user = people.create_user("owner@example.com", PASSWORD, "Owner")
+    organization = people.create_organization("acme", "Acme", user.id)
+    project = people.create_project(
+        organization.id, "production", "Production", user.id
+    )
+    return SimpleNamespace(
+        user=user, organization=organization, project=project, people=people
+    )
+
+
+@pytest.fixture
+def project(owner: Any) -> str:
+    """The identifier every data route is scoped by."""
+    return owner.project.public_id
+
+
+@pytest.fixture
+def token(owner: Any) -> str:
+    return owner.people.issue_key(owner.project.id, "test").value
+
+
+@pytest.fixture
+def signed_in(client: Any, owner: Any):
+    """A client carrying a session cookie. Origin set, as a browser sends one."""
+    client.headers["origin"] = "http://testserver"
+    answer = client.post(
+        "/api/v1/auth/signin",
+        json={"email": "owner@example.com", "password": PASSWORD},
+    )
+    assert answer.status_code == 200, answer.text
+    return client
 
 
 def an_event(board_id: str, kind: str = EventKind.WRITE_ADMITTED, **rest: Any) -> dict:
@@ -43,7 +77,9 @@ def send(client: Any, token: str, events: list[dict]) -> Any:
 
 
 class TestIngestion:
-    def test_a_batch_is_stored(self, client, token, board_id) -> None:
+    def test_a_batch_is_stored(
+        self, signed_in, client, token, project, board_id
+    ) -> None:
         answer = send(
             client,
             token,
@@ -56,7 +92,7 @@ class TestIngestion:
         assert answer.json()["stored"] == 2
 
     def test_an_identifier_is_written_once_however_many_times_it_arrives(
-        self, client, token, board_id
+        self, signed_in, client, token, project, board_id
     ) -> None:
         # A batch resent after a timeout adds nothing, so the counters do not
         # double and a retry is free.
@@ -65,12 +101,12 @@ class TestIngestion:
         again = send(client, token, events).json()
         assert again["stored"] == 0
         assert again["repeated"] == 2
-        run = client.get(f"/api/v1/runs/{board_id}").json()
+        run = signed_in.get(f"/api/v1/projects/{project}/runs/{board_id}").json()
         assert run["n_writes"] == 2
         assert run["n_events"] == 2
 
     def test_one_unreadable_event_does_not_cost_the_batch(
-        self, client, token, board_id
+        self, signed_in, client, token, project, board_id
     ) -> None:
         answer = send(
             client, token, [an_event(board_id), {"kind": "no board here"}]
@@ -78,12 +114,14 @@ class TestIngestion:
         assert answer["stored"] == 1
         assert answer["unreadable"] == 1
 
-    def test_a_wrong_token_is_refused(self, client, board_id) -> None:
+    def test_a_wrong_token_is_refused(
+        self, signed_in, client, project, board_id
+    ) -> None:
         answer = send(client, "bxr_not_a_key", [an_event(board_id)])
         assert answer.status_code == 401
         assert answer.json()["error"] == "unknown_token"
 
-    def test_no_token_is_refused(self, client, board_id) -> None:
+    def test_no_token_is_refused(self, signed_in, client, project, board_id) -> None:
         assert (
             client.post(
                 "/api/v1/ingest", json={"events": [an_event(board_id)]}
@@ -91,7 +129,9 @@ class TestIngestion:
             == 401
         )
 
-    def test_a_body_that_is_not_a_batch_is_refused(self, client, token) -> None:
+    def test_a_body_that_is_not_a_batch_is_refused(
+        self, signed_in, client, token, project
+    ) -> None:
         answer = client.post(
             "/api/v1/ingest",
             json={"nope": []},
@@ -100,11 +140,15 @@ class TestIngestion:
         assert answer.status_code == 400
         assert answer.json()["error"] == "unreadable_body"
 
-    def test_a_batch_beyond_the_cap_is_refused(self, client, token, board_id) -> None:
+    def test_a_batch_beyond_the_cap_is_refused(
+        self, signed_in, client, token, project, board_id
+    ) -> None:
         answer = send(client, token, [an_event(board_id)] * (MAX_BATCH + 1))
         assert answer.status_code == 413
 
-    def test_opening_and_closing_fill_the_run(self, client, token, board_id) -> None:
+    def test_opening_and_closing_fill_the_run(
+        self, signed_in, client, token, project, board_id
+    ) -> None:
         send(
             client,
             token,
@@ -129,7 +173,7 @@ class TestIngestion:
                 ),
             ],
         )
-        run = client.get(f"/api/v1/runs/{board_id}").json()
+        run = signed_in.get(f"/api/v1/projects/{project}/runs/{board_id}").json()
         assert run["outcome"] == "settled"
         assert run["unfinished"] == ["netops"]
         assert run["store"] == "PostgresStore"
@@ -137,13 +181,15 @@ class TestIngestion:
 
 
 class TestReading:
-    def test_a_run_that_was_never_sent_answers_404(self, client, token) -> None:
-        answer = client.get("/api/v1/runs/never-existed")
+    def test_a_run_that_was_never_sent_answers_404(
+        self, signed_in, client, token, project
+    ) -> None:
+        answer = signed_in.get(f"/api/v1/projects/{project}/runs/never-existed")
         assert answer.status_code == 404
         assert answer.json()["error"] == "unknown_run"
 
     def test_the_runs_list_filters_by_outcome_and_by_agent(
-        self, client, token, board_id
+        self, signed_in, client, token, project, board_id
     ) -> None:
         send(
             client,
@@ -162,26 +208,37 @@ class TestReading:
                 an_event(f"{board_id}-other", sequence=1, agent="triage"),
             ],
         )
-        assert client.get("/api/v1/runs").json()["total"] == 2
-        aborted = client.get("/api/v1/runs?outcome=aborted").json()
+        assert signed_in.get(f"/api/v1/projects/{project}/runs").json()["total"] == 2
+        aborted = signed_in.get(
+            f"/api/v1/projects/{project}/runs?outcome=aborted"
+        ).json()
         assert [run["board_id"] for run in aborted["runs"]] == [board_id]
-        assert client.get("/api/v1/runs?outcome=open").json()["total"] == 1
-        by_agent = client.get("/api/v1/runs?agent=triage").json()
+        assert (
+            signed_in.get(f"/api/v1/projects/{project}/runs?outcome=open").json()[
+                "total"
+            ]
+            == 1
+        )
+        by_agent = signed_in.get(f"/api/v1/projects/{project}/runs?agent=triage").json()
         assert [run["board_id"] for run in by_agent["runs"]] == [f"{board_id}-other"]
 
     def test_events_come_back_in_arrival_order_and_page(
-        self, client, token, board_id
+        self, signed_in, client, token, project, board_id
     ) -> None:
         send(client, token, [an_event(board_id, sequence=n) for n in range(1, 8)])
-        first = client.get(f"/api/v1/runs/{board_id}/events?limit=3").json()
+        first = signed_in.get(
+            f"/api/v1/projects/{project}/runs/{board_id}/events?limit=3"
+        ).json()
         assert len(first["events"]) == 3
         assert first["has_more"] is True
         second = client.get(
-            f"/api/v1/runs/{board_id}/events?after={first['next_after']}"
+            f"/api/v1/projects/{project}/runs/{board_id}/events?after={first['next_after']}"
         ).json()
         assert second["events"][0]["sequence"] == 4
 
-    def test_events_filter_by_kind(self, client, token, board_id) -> None:
+    def test_events_filter_by_kind(
+        self, signed_in, client, token, project, board_id
+    ) -> None:
         send(
             client,
             token,
@@ -191,11 +248,13 @@ class TestReading:
             ],
         )
         only = client.get(
-            f"/api/v1/runs/{board_id}/events?kind={EventKind.WRITE_REFUSED}"
+            f"/api/v1/projects/{project}/runs/{board_id}/events?kind={EventKind.WRITE_REFUSED}"
         ).json()
         assert [one["kind"] for one in only["events"]] == [EventKind.WRITE_REFUSED]
 
-    def test_an_agent_is_summarised_across_runs(self, client, token, board_id) -> None:
+    def test_an_agent_is_summarised_across_runs(
+        self, signed_in, client, token, project, board_id
+    ) -> None:
         for board in (board_id, f"{board_id}-two"):
             send(
                 client,
@@ -205,14 +264,14 @@ class TestReading:
                     an_event(board, EventKind.WRITE_REFUSED, agent="ocp"),
                 ],
             )
-        agents = client.get("/api/v1/agents").json()["agents"]
+        agents = signed_in.get(f"/api/v1/projects/{project}/agents").json()["agents"]
         ocp = next(one for one in agents if one["agent"] == "ocp")
         assert ocp["runs"] == 2
         assert ocp["writes"] == 2
         assert ocp["refusals"] == 2
 
     def test_an_agents_answer_time_is_measured_from_its_own_notification(
-        self, client, token, board_id
+        self, signed_in, client, token, project, board_id
     ) -> None:
         send(
             client,
@@ -232,16 +291,21 @@ class TestReading:
                 ).to_json(),
             ],
         )
-        ocp = client.get("/api/v1/agents/ocp").json()
+        ocp = signed_in.get(f"/api/v1/projects/{project}/agents/ocp").json()
         assert ocp["dispatched"] == 1
         assert ocp["acked"] == 1
         assert ocp["median_response"] is not None
 
-    def test_an_unknown_agent_answers_404(self, client, token) -> None:
-        assert client.get("/api/v1/agents/nobody").status_code == 404
+    def test_an_unknown_agent_answers_404(
+        self, signed_in, client, token, project
+    ) -> None:
+        assert (
+            signed_in.get(f"/api/v1/projects/{project}/agents/nobody").status_code
+            == 404
+        )
 
     def test_the_overview_counts_what_the_runs_hold(
-        self, client, token, board_id
+        self, signed_in, client, token, project, board_id
     ) -> None:
         send(
             client,
@@ -260,7 +324,7 @@ class TestReading:
                 ),
             ],
         )
-        overview = client.get("/api/v1/overview").json()
+        overview = signed_in.get(f"/api/v1/projects/{project}/overview").json()
         assert overview["runs"] == 1
         assert overview["settled"] == 1
         assert overview["writes"] == 1
@@ -269,7 +333,9 @@ class TestReading:
         # The counts are integers, not strings a sum returned as numeric.
         assert isinstance(overview["writes"], int)
 
-    def test_health_names_every_kind_the_platform_understands(self, client) -> None:
+    def test_health_names_every_kind_the_platform_understands(
+        self, signed_in, client, project
+    ) -> None:
         health = client.get("/api/v1/health").json()
         assert health["status"] == "ok"
         assert health["kinds"] == list(EventKind.ALL)
@@ -304,12 +370,16 @@ class TestTheIndex:
                 )
             send(client, token, events)
 
-    def test_an_interval_with_no_run_arrives_as_a_zero(self, client, token) -> None:
+    def test_an_interval_with_no_run_arrives_as_a_zero(
+        self, signed_in, client, token, project
+    ) -> None:
         # The chart is continuous. A missing bucket and a quiet one look the
         # same once they are drawn side by side, and the quiet one is the
         # reading an operator most needs.
         self._a_day(client, token)
-        answer = client.get("/api/v1/histogram?step=3600&buckets=6").json()
+        answer = signed_in.get(
+            f"/api/v1/projects/{project}/histogram?step=3600&buckets=6"
+        ).json()
         assert len(answer["buckets"]) == 6
         assert all(
             {"open", "settled", "aborted", "expired"} <= set(bucket)
@@ -317,29 +387,41 @@ class TestTheIndex:
         )
         assert any(sum_of(bucket) == 0 for bucket in answer["buckets"])
 
-    def test_a_run_is_counted_in_the_interval_it_opened_in(self, client, token) -> None:
+    def test_a_run_is_counted_in_the_interval_it_opened_in(
+        self, signed_in, client, token, project
+    ) -> None:
         self._a_day(client, token)
-        answer = client.get("/api/v1/histogram?step=3600&buckets=6").json()
+        answer = signed_in.get(
+            f"/api/v1/projects/{project}/histogram?step=3600&buckets=6"
+        ).json()
         assert sum(sum_of(bucket) for bucket in answer["buckets"]) == 4
         assert sum(bucket["settled"] for bucket in answer["buckets"]) == 2
         assert sum(bucket["aborted"] for bucket in answer["buckets"]) == 1
         assert sum(bucket["open"] for bucket in answer["buckets"]) == 1
 
-    def test_the_bars_do_not_slide_between_two_reads(self, client, token) -> None:
+    def test_the_bars_do_not_slide_between_two_reads(
+        self, signed_in, client, token, project
+    ) -> None:
         # The grid is anchored to the epoch and not to now, so a chart redrawn
         # a second later has the same boundaries.
         self._a_day(client, token)
-        first = client.get("/api/v1/histogram?step=3600&buckets=6").json()
-        second = client.get("/api/v1/histogram?step=3600&buckets=6").json()
+        first = signed_in.get(
+            f"/api/v1/projects/{project}/histogram?step=3600&buckets=6"
+        ).json()
+        second = signed_in.get(
+            f"/api/v1/projects/{project}/histogram?step=3600&buckets=6"
+        ).json()
         assert [b["at"] for b in first["buckets"]] == [
             b["at"] for b in second["buckets"]
         ]
 
-    def test_a_facet_count_ignores_its_own_filter(self, client, token) -> None:
+    def test_a_facet_count_ignores_its_own_filter(
+        self, signed_in, client, token, project
+    ) -> None:
         # A count taken with its own filter applied reads one for the choice
         # already made and zero for every other, which tells nobody where to go.
         self._a_day(client, token)
-        facets = client.get("/api/v1/facets").json()
+        facets = signed_in.get(f"/api/v1/projects/{project}/facets").json()
         assert facets["total"] == 4
         assert facets["settled"] == 2
         assert facets["aborted"] == 1
@@ -347,86 +429,145 @@ class TestTheIndex:
         assert facets["unfinished"] == 3
         assert [one["name"] for one in facets["agents"]] == ["ocp"]
 
-    def test_a_facet_count_honours_every_other_filter(self, client, token) -> None:
+    def test_a_facet_count_honours_every_other_filter(
+        self, signed_in, client, token, project
+    ) -> None:
         self._a_day(client, token)
-        assert client.get("/api/v1/facets?agent=ocp").json()["total"] == 4
-        assert client.get("/api/v1/facets?agent=netops").json()["total"] == 0
-        assert client.get("/api/v1/facets?search=board-2").json()["total"] == 1
+        assert (
+            signed_in.get(f"/api/v1/projects/{project}/facets?agent=ocp").json()[
+                "total"
+            ]
+            == 4
+        )
+        assert (
+            signed_in.get(f"/api/v1/projects/{project}/facets?agent=netops").json()[
+                "total"
+            ]
+            == 0
+        )
+        assert (
+            signed_in.get(f"/api/v1/projects/{project}/facets?search=board-2").json()[
+                "total"
+            ]
+            == 1
+        )
 
-    def test_a_range_is_half_open(self, client, token) -> None:
+    def test_a_range_is_half_open(self, signed_in, client, token, project) -> None:
         # A run opened exactly on a bar's right edge belongs to the next bar.
         # Closing both ends would count it in two.
         self._a_day(client, token)
-        buckets = client.get("/api/v1/histogram?step=3600&buckets=6").json()["buckets"]
+        buckets = signed_in.get(
+            f"/api/v1/projects/{project}/histogram?step=3600&buckets=6"
+        ).json()["buckets"]
         busy = next(b for b in buckets if sum_of(b) > 0)
         edge = datetime.fromisoformat(busy["at"])
         inside = client.get(
-            f"/api/v1/runs?since={edge.isoformat()}"
+            f"/api/v1/projects/{project}/runs?since={edge.isoformat()}"
             f"&until={(edge + timedelta(hours=1)).isoformat()}"
         ).json()
+        later = edge + timedelta(hours=1)
         after = client.get(
-            f"/api/v1/runs?since={(edge + timedelta(hours=1)).isoformat()}"
-            f"&until={(edge + timedelta(hours=2)).isoformat()}"
+            f"/api/v1/projects/{project}/runs?since={later.isoformat()}"
+            f"&until={(later + timedelta(hours=1)).isoformat()}"
         ).json()
         assert inside["total"] == sum_of(busy)
         assert not {r["board_id"] for r in inside["runs"]} & {
             r["board_id"] for r in after["runs"]
         }
 
-    def test_the_table_and_the_chart_agree_on_an_interval(self, client, token) -> None:
+    def test_the_table_and_the_chart_agree_on_an_interval(
+        self, signed_in, client, token, project
+    ) -> None:
         # Selecting a bar has to show the runs the bar counted. Two queries
         # that disagree would make the chart a decoration.
         self._a_day(client, token)
-        buckets = client.get("/api/v1/histogram?step=3600&buckets=6").json()["buckets"]
+        buckets = signed_in.get(
+            f"/api/v1/projects/{project}/histogram?step=3600&buckets=6"
+        ).json()["buckets"]
         for bucket in buckets:
             since = datetime.fromisoformat(bucket["at"])
             listed = client.get(
-                f"/api/v1/runs?since={since.isoformat()}"
+                f"/api/v1/projects/{project}/runs?since={since.isoformat()}"
                 f"&until={(since + timedelta(hours=1)).isoformat()}"
             ).json()
             assert listed["total"] == sum_of(bucket)
 
-    def test_unfinished_narrows_the_list(self, client, token) -> None:
+    def test_unfinished_narrows_the_list(
+        self, signed_in, client, token, project
+    ) -> None:
         self._a_day(client, token)
-        assert client.get("/api/v1/runs?unfinished=true").json()["total"] == 3
-        assert client.get("/api/v1/runs").json()["total"] == 4
+        assert (
+            signed_in.get(f"/api/v1/projects/{project}/runs?unfinished=true").json()[
+                "total"
+            ]
+            == 3
+        )
+        assert signed_in.get(f"/api/v1/projects/{project}/runs").json()["total"] == 4
 
     def test_a_bucket_count_past_what_a_chart_can_draw_is_refused(
-        self, client, token
+        self, signed_in, client, token, project
     ) -> None:
-        assert client.get("/api/v1/histogram?buckets=1000").status_code == 422
+        assert (
+            signed_in.get(
+                f"/api/v1/projects/{project}/histogram?buckets=1000"
+            ).status_code
+            == 422
+        )
 
 
 class TestProjects:
-    def test_a_read_names_the_only_project_without_being_told(
-        self, client, token
+    def test_a_project_this_person_is_not_in_is_not_found(
+        self, signed_in, project
     ) -> None:
-        assert client.get("/api/v1/overview").json()["project"] == "production"
-
-    def test_a_project_that_does_not_exist_answers_404(self, client, token) -> None:
-        answer = client.get("/api/v1/overview?project=staging")
-        assert answer.status_code == 404
-        assert answer.json()["error"] == "unknown_project"
+        # The same answer as a project that does not exist. A different one
+        # would let a stranger confirm which projects a deployment holds.
+        assert (
+            signed_in.get("/api/v1/projects/proj_invented/overview").status_code == 404
+        )
 
     def test_two_projects_do_not_share_a_board_identifier(
-        self, client, database, token, board_id
+        self, signed_in, client, database, owner, board_id
     ) -> None:
-        other = database.create_project("staging")
-        second = database.issue_key(other.id, "test").token
-        send(client, token, [an_event(board_id, sequence=1, agent="ocp")])
+        people = database.people
+        other = people.create_project(
+            owner.organization.id, "staging", "Staging", owner.user.id
+        )
+        first = people.issue_key(owner.project.id, "one").value
+        second = people.issue_key(other.id, "two").value
+        send(client, first, [an_event(board_id, sequence=1, agent="ocp")])
         send(client, second, [an_event(board_id, sequence=9, agent="netops")])
-        production = client.get(f"/api/v1/runs/{board_id}?project=production").json()
-        staging = client.get(f"/api/v1/runs/{board_id}?project=staging").json()
-        assert production["last_sequence"] == 1
-        assert staging["last_sequence"] == 9
-        assert production["agents"] == ["ocp"]
-        assert staging["agents"] == ["netops"]
+
+        here = signed_in.get(
+            f"/api/v1/projects/{owner.project.public_id}/runs/{board_id}"
+        ).json()
+        there = signed_in.get(
+            f"/api/v1/projects/{other.public_id}/runs/{board_id}"
+        ).json()
+        assert here["last_sequence"] == 1
+        assert there["last_sequence"] == 9
+        assert here["agents"] == ["ocp"]
+        assert there["agents"] == ["netops"]
 
     def test_a_key_is_stored_as_a_hash_and_never_read_back(
-        self, database, token
+        self, database, owner
     ) -> None:
-        project = database.list_projects()[0]
-        keys = database.list_keys(project["id"])
-        assert keys[0]["prefix"] == token[:10]
-        assert "token" not in keys[0]
-        assert token not in str(keys[0])
+        issued = database.people.issue_key(owner.project.id, "test")
+        listed = database.people.list_keys(owner.project.id)
+        assert issued.value not in str(listed)
+        rows = database.rows("SELECT token_hash FROM xray_api_keys")
+        assert all(row["token_hash"] != issued.value for row in rows)
+
+    def test_a_revoked_key_stops_sending(
+        self, client, database, owner, board_id
+    ) -> None:
+        # The whole point of revocation. A key that still ingests after being
+        # revoked is a key that was never revoked.
+        issued = database.people.issue_key(owner.project.id, "doomed")
+        assert send(client, issued.value, [an_event(board_id)]).status_code == 202
+        public = next(
+            one["id"]
+            for one in database.people.list_keys(owner.project.id)
+            if one["name"] == "doomed"
+        )
+        database.people.revoke_key(owner.project.id, public)
+        assert send(client, issued.value, [an_event(board_id)]).status_code == 401
