@@ -73,6 +73,24 @@ jobs:
       - run: npm run build
         working-directory: ui
 
+      # What `pip install blackboardxray[server]` actually gets. The interface
+      # is generated and gitignored, and a build backend that skips what
+      # version control ignores ships a server serving a blank page. It has
+      # happened twice: once because the wheel target did not name it, and
+      # once because the sdist did not and the wheel is built from the sdist.
+      - uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb # v6.1.0
+        with:
+          python-version: "3.12"
+      - name: the interface is in both distributions
+        run: |
+          set -euo pipefail
+          uv build
+          tar tzf dist/*.tar.gz | grep -q "server/web/index.html"
+          echo "the sdist carries the interface"
+          unzip -l dist/*.whl | grep -q "server/web/index.html"
+          test "$(unzip -l dist/*.whl | grep -c 'server/web/assets/')" -gt 0
+          echo "the wheel carries the interface and its assets"
+
   # The quickstart in the README, run as written. A compose file that has drifted
   # from the Dockerfile is a first impression nobody recovers from, and it is
   # exactly the kind of break the unit tests cannot see.
