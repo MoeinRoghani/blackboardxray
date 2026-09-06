@@ -117,6 +117,26 @@ they already talk to their colleagues. A password reset is the same. An install
 that needs a mail server before a second person can sign in is an install that
 does not get a second person.
 
+## Decisions that are settled
+
+Answered by the maintainer on 2026-09-06. Recorded with what was turned down,
+because a decision whose alternatives are forgotten is one that gets reopened
+by whoever reads the code next and thinks of the obvious other way.
+
+| Question | Settled on | Turned down, and why it stays turned down |
+| --- | --- | --- |
+| Tenancy | Organizations own projects, Langfuse parity | Flat projects with one workspace. Simpler, and adequate for one company running one instance, but the org layer cannot be retrofitted without rewriting every URL and every permission check |
+| Sign in | Email and password only | Adding OIDC in the first release. It is what a corporate install eventually wants, and it roughly doubles the authentication work and needs a real provider to test against. It is additive later and breaks nothing |
+| Email | No SMTP. Invites and resets are one time links an admin copies | Requiring SMTP. It makes every self hoster configure mail before a second person can sign in, and makes delivery a support burden |
+| Release | Self hosted the way Langfuse does it: clone and compose, a published image, the client on PyPI, and documentation | Publishing nothing yet, or shipping the image without the client |
+
+Two things follow from the first row and are worth stating so they are not
+rediscovered as problems. A project slug is unique inside its organization and
+not across the install, so two teams may both have a project called
+production. And a project is named in a URL by an opaque public identifier
+rather than by its slug, because the slug is no longer unique and a serial
+would say how many projects exist.
+
 ## Steps to operational
 
 | # | Step | Status |
@@ -142,13 +162,43 @@ does not get a second person.
 | U12 | Every existing surface scoped to the project in the address | |
 | P1 | Retention. A per project window, chunked deletes, one sweeper however many replicas | |
 | P2 | Ingest limits: per key rate, payload ceiling, and a 429 the client already knows how to obey | |
-| P3 | Liveness against readiness, graceful shutdown, and a request identifier through every log line | |
+| P3 | Graceful shutdown, and a request identifier through every log line. Liveness against readiness is already built: `/api/v1/health` answers whether the process runs and `/api/v1/ready` whether it can serve, because an orchestrator restarts one and drains the other | |
 | P4 | An audit trail of who changed what, because a role change nobody can attribute is a role change nobody can review | |
 | R1 | release-please, conventional titles, one place the version lives | |
 | R2 | A multi architecture image on every tag, and a compose file that runs the whole platform from a clone | |
 | R3 | The client on PyPI, published by the workflow rather than by a person | |
 | R4 | The documentation a stranger needs: quickstart, every environment variable, upgrading, backup and restore, the security model, and the volume ceiling | |
-| R5 | An upgrade test: raise a database written by the previous version and assert the record survived | |
+| R5 | An upgrade test: raise a database written by the previous version and assert the record survived | done |
+
+## Where things stand
+
+Everything through `O3` is built, tested and committed. `U`, `P` and `R` are
+not started.
+
+The interface is the next thing and it is currently broken, deliberately.
+Every read moved from `/api/v1/runs` to `/api/v1/projects/{id}/runs` when
+projects stopped being globally unique, and every read now needs a session.
+`ui/src` still calls the old paths, so it gets 404s and 401s until `U12`. That
+is expected and is not a regression to chase.
+
+To run the whole thing:
+
+```
+createdb blackboardxray
+BLACKBOARDXRAY_DATABASE_URL=postgresql://localhost/blackboardxray \
+  .venv/bin/python -m blackboardxray.server serve
+```
+
+Then open it and the first run screen makes the owner, an organization, a
+project and a key. To verify without a browser, `tests/test_onboarding.py`
+walks the same path.
+
+The suite needs a database and skips every test that touches one without it:
+
+```
+createdb blackboardxray_test
+BLACKBOARDXRAY_TEST_DSN=postgresql://localhost/blackboardxray_test make verify
+```
 
 ## Rules for every step
 
