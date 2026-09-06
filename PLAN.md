@@ -170,6 +170,26 @@ would say how many projects exist.
 | R4 | The documentation a stranger needs: quickstart, every environment variable, upgrading, backup and restore, the security model, and the volume ceiling | done |
 | R5 | An upgrade test: raise a database written by the previous version and assert the record survived | done |
 
+## What a release cost the first time
+
+Five things broke between a tag and a published artefact, and each was invisible
+until the step that needed it ran.
+
+The image name was built from `github.repository`, which carries the owner's
+capital letter, and a registry name must be lowercase. The publish action
+bundled a twine older than the metadata hatchling writes, and reported the name
+as missing from a wheel that plainly has one. The interface reached the wheel
+target and not the sdist, and `uv build` builds the wheel from the sdist. A
+skipped job carried its skip the whole way down the `needs` chain, so the plan
+was computed and nothing used it. And a check that passed failed its own step,
+because `grep -q` closes the pipe, GNU tar fails writing to it, and `pipefail`
+fails the step; BSD tar tolerates it, which is why it passed where it was
+written.
+
+The first tag was deleted rather than patched around. Nothing had published, so
+nothing referenced it, and a first release where the image and the client both
+exist and match is worth more than a version number that records the attempt.
+
 ## Where things stand
 
 Every row is done.
@@ -260,7 +280,7 @@ green.
 | X1 | CI green on `main`, including the compose job that has never run anywhere | done |
 | X2 | The release pull request release-please opens, merged, tagging `0.1.0` | done |
 | X3 | The image on GHCR, pulled and run from the registry rather than from a build | |
-| X4 | The client on PyPI by trusted publishing, installed from the index into a clean environment | |
+| X4 | The client on PyPI by trusted publishing, installed from the index into a clean environment | done |
 | X5 | The quickstart walked from a clone nobody has touched, against the published image | |
 
 ## Rules for every step
