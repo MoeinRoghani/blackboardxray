@@ -14,15 +14,20 @@ Open <http://localhost:8900>. The first screen makes your account, an
 organization, a project, and a key an application can send with. It is offered
 once: after somebody exists, everybody else arrives by invitation.
 
-To run a release rather than the working copy, replace `build: .` in
-`docker-compose.yml` with the published image:
+That runs the published image. The tag `0` follows the major line and gets
+fixes without you reading release notes; pin `0.1.0` instead if you would
+rather decide each time, or swap the `image:` line for `build: .` to run the
+working copy.
 
-```yaml
-image: ghcr.io/moeinroghani/blackboardxray:1
+The image is built for `linux/amd64` and `linux/arm64` and carries a signed
+provenance attestation and a bill of materials, so you can ask what is in it
+and who built it:
+
 ```
-
-The tag `1` follows the major line and gets fixes without you reading release
-notes. Pin the exact version instead if you would rather decide each time.
+gh attestation verify oci://ghcr.io/moeinroghani/blackboardxray:0 \
+  --owner MoeinRoghani
+docker buildx imagetools inspect ghcr.io/moeinroghani/blackboardxray:0
+```
 
 ## What it needs
 
