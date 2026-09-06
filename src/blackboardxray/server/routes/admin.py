@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
 from blackboardxray.server.db import Database
@@ -57,6 +57,13 @@ class NewInvite(BaseModel):
 
 class MemberRole(BaseModel):
     role: str = Field(max_length=20)
+
+
+def _address(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else ""
 
 
 def router(store: Database, guard: Guard) -> APIRouter:
@@ -138,8 +145,19 @@ def router(store: Database, guard: Guard) -> APIRouter:
         }
 
     @api.delete("/projects/{project}", status_code=204)
-    def delete_project(project: str, caller: Caller = Depends(guard.caller)) -> None:
+    def delete_project(
+        request: Request, project: str, caller: Caller = Depends(guard.caller)
+    ) -> None:
         access = guard.project(project, caller, Permission.DELETE_PROJECT)
+        # Recorded before the delete, because the project's own rows go with it
+        # and a line pointing at nothing is still a line saying who did it.
+        people.record(
+            "project.deleted",
+            actor=caller.user,
+            org_id=access.organization.id,
+            target=access.project.name,
+            address=_address(request),
+        )
         people.delete_project(access.project.id)
 
     # Keys
@@ -151,20 +169,39 @@ def router(store: Database, guard: Guard) -> APIRouter:
 
     @api.post("/projects/{project}/keys", status_code=201)
     def create_key(
-        project: str, body: NewKey, caller: Caller = Depends(guard.caller)
+        request: Request,
+        project: str,
+        body: NewKey,
+        caller: Caller = Depends(guard.caller),
     ) -> dict[str, Any]:
         access = guard.project(project, caller, Permission.MANAGE_KEYS)
         made = people.issue_key(access.project.id, body.name, caller.user.id)
+        people.record(
+            "key.created",
+            actor=caller.user,
+            org_id=access.organization.id,
+            project_id=access.project.id,
+            target=body.name or made.value[:12],
+            address=_address(request),
+        )
         # The one moment this value exists outside the sender's memory.
         return {"token": made.value, "name": body.name}
 
     @api.delete("/projects/{project}/keys/{key}", status_code=204)
     def revoke_key(
-        project: str, key: str, caller: Caller = Depends(guard.caller)
+        request: Request, project: str, key: str, caller: Caller = Depends(guard.caller)
     ) -> None:
         access = guard.project(project, caller, Permission.MANAGE_KEYS)
         if not people.revoke_key(access.project.id, key):
             raise fail(404, "unknown_key", "No such key, or it is already revoked.")
+        people.record(
+            "key.revoked",
+            actor=caller.user,
+            org_id=access.organization.id,
+            project_id=access.project.id,
+            target=key,
+            address=_address(request),
+        )
 
     # Members
 
@@ -175,6 +212,7 @@ def router(store: Database, guard: Guard) -> APIRouter:
 
     @api.patch("/orgs/{org}/members/{member}")
     def set_role(
+        request: Request,
         org: str,
         member: str,
         body: MemberRole,
@@ -203,11 +241,19 @@ def router(store: Database, guard: Guard) -> APIRouter:
                 f"{subject.email} is {theirs.value} here, which you do not outrank.",
             )
         people.set_member_role(found.id, subject.id, wanted)
+        people.record(
+            "member.role_changed",
+            actor=caller.user,
+            org_id=found.id,
+            target=subject.email,
+            detail={"from": theirs.value, "to": wanted.value},
+            address=_address(request),
+        )
         return {"id": subject.public_id, "role": wanted.value}
 
     @api.delete("/orgs/{org}/members/{member}", status_code=204)
     def remove_member(
-        org: str, member: str, caller: Caller = Depends(guard.caller)
+        request: Request, org: str, member: str, caller: Caller = Depends(guard.caller)
     ) -> None:
         found, mine = guard.organization(org, caller)
         subject = people.find_user(member)
@@ -230,6 +276,14 @@ def router(store: Database, guard: Guard) -> APIRouter:
             people.remove_member(found.id, subject.id)
         except NotAllowed as refused:
             raise fail(409, "last_owner", str(refused)) from refused
+        people.record(
+            "member.left" if subject.id == caller.user.id else "member.removed",
+            actor=caller.user,
+            org_id=found.id,
+            target=subject.email,
+            detail={"was": theirs.value},
+            address=_address(request),
+        )
 
     # Invitations
 
@@ -240,7 +294,10 @@ def router(store: Database, guard: Guard) -> APIRouter:
 
     @api.post("/orgs/{org}/invites", status_code=201)
     def create_invite(
-        org: str, body: NewInvite, caller: Caller = Depends(guard.caller)
+        request: Request,
+        org: str,
+        body: NewInvite,
+        caller: Caller = Depends(guard.caller),
     ) -> dict[str, Any]:
         found, mine = guard.organization(org, caller, Permission.MANAGE_MEMBERS)
         wanted = read_role(body.role)
@@ -257,6 +314,14 @@ def router(store: Database, guard: Guard) -> APIRouter:
             made = people.create_invite(found.id, body.email, wanted, caller.user.id)
         except PeopleError as refused:
             raise fail(422, "cannot_invite", str(refused)) from refused
+        people.record(
+            "invite.created",
+            actor=caller.user,
+            org_id=found.id,
+            target=body.email,
+            detail={"role": wanted.value},
+            address=_address(request),
+        )
         # The token, once. The interface turns it into a link to copy and the
         # database keeps only a digest of it.
         return {"token": made.value, "email": body.email, "role": wanted.value}
@@ -268,6 +333,12 @@ def router(store: Database, guard: Guard) -> APIRouter:
         found, _ = guard.organization(org, caller, Permission.MANAGE_MEMBERS)
         if not people.revoke_invite(found.id, invite):
             raise fail(404, "unknown_invite", "No such invitation.")
+
+    @api.get("/orgs/{org}/audit")
+    def audit(org: str, caller: Caller = Depends(guard.caller)) -> dict[str, Any]:
+        """What has been changed here, and by whom."""
+        found, _ = guard.organization(org, caller, Permission.MANAGE_MEMBERS)
+        return {"entries": people.audit(found.id)}
 
     # A role on one project
 

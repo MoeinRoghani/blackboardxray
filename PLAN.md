@@ -160,10 +160,10 @@ would say how many projects exist.
 | U10 | Organization settings: members, roles, and invite links to copy | done |
 | U11 | The account: name, password, and every session with a way to end it | done |
 | U12 | Every existing surface scoped to the project in the address | done |
-| P1 | Retention. A per project window, chunked deletes, one sweeper however many replicas | |
-| P2 | Ingest limits: per key rate, payload ceiling, and a 429 the client already knows how to obey | |
-| P3 | Graceful shutdown, and a request identifier through every log line. Liveness against readiness is already built: `/api/v1/health` answers whether the process runs and `/api/v1/ready` whether it can serve, because an orchestrator restarts one and drains the other | |
-| P4 | An audit trail of who changed what, because a role change nobody can attribute is a role change nobody can review | |
+| P1 | Retention. A per project window, chunked deletes, one sweeper however many replicas | done |
+| P2 | Ingest limits: per key rate, payload ceiling, and a 429 the client already knows how to obey | done |
+| P3 | Graceful shutdown, and a request identifier through every log line. Liveness against readiness is already built: `/api/v1/health` answers whether the process runs and `/api/v1/ready` whether it can serve, because an orchestrator restarts one and drains the other | done |
+| P4 | An audit trail of who changed what, because a role change nobody can attribute is a role change nobody can review | done |
 | R1 | release-please, conventional titles, one place the version lives | |
 | R2 | A multi architecture image on every tag, and a compose file that runs the whole platform from a clone | |
 | R3 | The client on PyPI, published by the workflow rather than by a person | |
@@ -172,8 +172,8 @@ would say how many projects exist.
 
 ## Where things stand
 
-Everything through `U12` is built, tested and committed. `P` and `R` are
-not started, except `R5`, which was built during `M1`.
+Everything through `P4` is built, tested and committed. Only `R1` to `R4`
+remain; `R5` was built during `M1`.
 
 The interface is done and scoped: a project is in the path, everything under
 `/p/:projectId` needs a session, and the three screens before a session

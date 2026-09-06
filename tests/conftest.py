@@ -33,8 +33,8 @@ def database(dsn: str) -> Iterator[object]:
     with store.connection() as connection:
         with connection.cursor() as cursor:
             cursor.execute(
-                "TRUNCATE xray_events, xray_runs, xray_api_keys, xray_projects,"
-                " xray_project_roles, xray_invites, xray_memberships,"
+                "TRUNCATE xray_audit, xray_events, xray_runs, xray_api_keys,"
+                " xray_projects, xray_project_roles, xray_invites, xray_memberships,"
                 " xray_organizations, xray_sessions, xray_users"
                 " RESTART IDENTITY CASCADE"
             )

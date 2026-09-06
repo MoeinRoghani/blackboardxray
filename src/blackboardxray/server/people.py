@@ -11,9 +11,12 @@ no key and no invite anybody can use.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
+
+from psycopg.types.json import Jsonb
 
 from blackboardxray.server.identity import (
     INVITE_DAYS,
@@ -30,6 +33,8 @@ from blackboardxray.server.roles import Permission, Role, allows, effective, rea
 
 if TYPE_CHECKING:  # pragma: no cover
     from blackboardxray.server.db import Database
+
+logger = logging.getLogger("blackboardxray.people")
 
 #: What a token looks like. The prefix is shown in the interface; the rest is
 #: shown once and never again.
@@ -719,6 +724,56 @@ class People:
                 (org_id, public),
             )
             > 0
+        )
+
+    # The record of what changed
+
+    def record(
+        self,
+        action: str,
+        *,
+        actor: User | None = None,
+        org_id: int | None = None,
+        project_id: int | None = None,
+        target: str = "",
+        detail: dict[str, Any] | None = None,
+        address: str = "",
+    ) -> None:
+        """Writes one line of the audit trail. Never raises into a request.
+
+        An action that happened and was not recorded is worse than one that was
+        recorded twice, but neither is worth failing the request the person
+        actually asked for: the change has already been made by the time this
+        runs.
+        """
+        try:
+            self._db.run(
+                "INSERT INTO xray_audit"
+                " (org_id, project_id, actor_id, actor_email, action, target,"
+                "  detail, address)"
+                " VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                (
+                    org_id,
+                    project_id,
+                    actor.id if actor else None,
+                    actor.email if actor else "",
+                    action,
+                    target,
+                    Jsonb(detail or {}),
+                    address[:100],
+                ),
+            )
+        except Exception:  # pragma: no cover - the change already happened
+            logger.warning("blackboardxray could not record %s", action, exc_info=True)
+
+    def audit(self, org_id: int, limit: int = 200) -> list[dict[str, Any]]:
+        """What has been changed in this organization, most recent first."""
+        return self._db.rows(
+            "SELECT a.at, a.actor_email, a.action, a.target, a.detail, a.address,"
+            " p.name AS project"
+            " FROM xray_audit a LEFT JOIN xray_projects p ON p.id = a.project_id"
+            " WHERE a.org_id = %s ORDER BY a.at DESC LIMIT %s",
+            (org_id, limit),
         )
 
     def _organization(self, org_id: int) -> Organization | None:

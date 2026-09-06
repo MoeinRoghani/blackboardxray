@@ -73,6 +73,10 @@ class Settings:
     port: int = 8900
     allowed_origins: tuple[str, ...] = ()
     allow_signup: bool = False
+    #: Events per second one key may send, and what it may send in one go after
+    #: being quiet. Held per process, so several replicas each allow this much.
+    ingest_rate: float = 2_000.0
+    ingest_burst: float = 20_000.0
     provision: Provision = field(default_factory=Provision)
 
     @classmethod
@@ -93,6 +97,10 @@ class Settings:
                 part.strip() for part in origins.split(",") if part.strip()
             ),
             allow_signup=_yes(os.environ.get(SIGNUP_VARIABLE)),
+            ingest_rate=_number(os.environ.get("BLACKBOARDXRAY_INGEST_RATE"), 2_000.0),
+            ingest_burst=_number(
+                os.environ.get("BLACKBOARDXRAY_INGEST_BURST"), 20_000.0
+            ),
             provision=Provision.from_env(),
         )
 
@@ -100,6 +108,13 @@ class Settings:
 def _yes(given: str | None) -> bool:
     """Reads a flag the way a person writes one in a compose file."""
     return (given or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _number(given: str | None, fallback: float) -> float:
+    try:
+        return float(given) if given else fallback
+    except ValueError:
+        return fallback
 
 
 def _whole(given: str | None, fallback: int) -> int:

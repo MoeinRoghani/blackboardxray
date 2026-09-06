@@ -19,8 +19,10 @@ things that are not about a person at all.
 from __future__ import annotations
 
 import logging
+import time
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,6 +32,7 @@ from fastapi.staticfiles import StaticFiles
 
 from blackboardxray.events import SCHEMA_VERSION, Event, EventError, EventKind
 from blackboardxray.server.db import Database, Project
+from blackboardxray.server.limits import Limiter
 from blackboardxray.server.provision import provision
 from blackboardxray.server.routes import admin, auth, data
 from blackboardxray.server.security import Guard
@@ -39,6 +42,10 @@ logger = logging.getLogger("blackboardxray.server")
 
 #: The most events one ingestion request carries.
 MAX_BATCH = 1000
+
+#: The header a request identifier travels in, so a line in this platform's log
+#: can be joined to a line in the log of whatever sits in front of it.
+REQUEST_ID = "x-request-id"
 
 _WEB = Path(__file__).with_name("web")
 
@@ -73,6 +80,30 @@ def build(settings: Settings, database: Database | None = None) -> FastAPI:
         logger.info("blackboardxray provisioned %s", line)
 
     guard = Guard(store, settings.allowed_origins)
+    limiter = Limiter(rate=settings.ingest_rate, burst=settings.ingest_burst)
+
+    @app.middleware("http")
+    async def identified(request: Request, call_next: Any) -> Any:
+        """Gives every request an identifier and puts it on the way out.
+
+        Taken from the caller where one was given, so a request traced through
+        a proxy keeps the same name here that it had there.
+        """
+        carried = request.headers.get(REQUEST_ID, "") or uuid4().hex[:16]
+        request.state.request_id = carried
+        started = time.monotonic()
+        answer = await call_next(request)
+        answer.headers[REQUEST_ID] = carried
+        if answer.status_code >= 500 or request.url.path.startswith("/api/"):
+            logger.info(
+                "%s %s %s %d %.1fms",
+                carried,
+                request.method,
+                request.url.path,
+                answer.status_code,
+                (time.monotonic() - started) * 1000,
+            )
+        return answer
 
     def sending(
         authorization: str = Header(default=""),
@@ -130,6 +161,21 @@ def build(settings: Settings, database: Database | None = None) -> FastAPI:
                 },
             )
         raw = body["events"]
+        wait = limiter.take(str(project.id), len(raw))
+        if wait > 0:
+            # The client reads this header, waits, and sends the same batch
+            # again, so being limited costs a delay and not the events.
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "error": "too_fast",
+                    "detail": (
+                        "this key is sending faster than the platform accepts."
+                        " The batch was not stored; send it again."
+                    ),
+                },
+                headers={"retry-after": str(max(1, round(wait)))},
+            )
         if len(raw) > MAX_BATCH:
             raise HTTPException(
                 status_code=413,
