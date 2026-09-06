@@ -5,18 +5,27 @@
 # tags the release, and the tag builds the image and publishes the client.
 #
 # Nothing here is done by a person, because a release done by hand is a release
-# whose steps are remembered differently each time.
+# whose steps are remembered differently each time. The one exception is the
+# recovery path: a tag whose artefacts failed to publish can be published again
+# without cutting a second tag, which is what `workflow_dispatch` is for.
 name: Release
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "An existing tag to publish, when its artefacts failed"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -24,9 +33,6 @@ jobs:
     outputs:
       released: ${{ steps.please.outputs.release_created }}
       tag: ${{ steps.please.outputs.tag_name }}
-      version: ${{ steps.please.outputs.version }}
-      major: ${{ steps.please.outputs.major }}
-      minor: ${{ steps.please.outputs.minor }}
     steps:
       - uses: googleapis/release-please-action@a02a34c4d625f9be7cb89156071d8567266a2445 # v4.1.3
         id: please
@@ -34,9 +40,32 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+  # What to publish, from whichever of the two ways this ran. One job, so the
+  # two below say `needs.plan` and never care which it was.
+  plan:
+    needs: [please]
+    if: always() && (needs.please.outputs.released == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.what.outputs.tag }}
+      version: ${{ steps.what.outputs.version }}
+      major: ${{ steps.what.outputs.major }}
+      minor: ${{ steps.what.outputs.minor }}
+    steps:
+      - id: what
+        env:
+          TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || needs.please.outputs.tag }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "major=${version%%.*}" >> "$GITHUB_OUTPUT"
+          rest="${version#*.}"
+          echo "minor=${rest%%.*}" >> "$GITHUB_OUTPUT"
+
   image:
-    needs: please
-    if: needs.please.outputs.released == 'true'
+    needs: [plan]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -46,6 +75,8 @@ jobs:
       attestations: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.plan.outputs.tag }}
       - uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
       - uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
       - uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
@@ -61,6 +92,7 @@ jobs:
       - name: the image name, lowercased
         id: name
         run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
       - uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 # v6.7.0
         id: build
         with:
@@ -79,9 +111,9 @@ jobs:
           # Written without the leading `v`, because an image tag conventionally
           # carries the version and not the git tag's name for it.
           tags: |
-            ${{ steps.name.outputs.image }}:${{ needs.please.outputs.version }}
-            ${{ steps.name.outputs.image }}:${{ needs.please.outputs.major }}.${{ needs.please.outputs.minor }}
-            ${{ steps.name.outputs.image }}:${{ needs.please.outputs.major }}
+            ${{ steps.name.outputs.image }}:${{ needs.plan.outputs.version }}
+            ${{ steps.name.outputs.image }}:${{ needs.plan.outputs.major }}.${{ needs.plan.outputs.minor }}
+            ${{ steps.name.outputs.image }}:${{ needs.plan.outputs.major }}
             ${{ steps.name.outputs.image }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -94,8 +126,7 @@ jobs:
           push-to-registry: true
 
   package:
-    needs: please
-    if: needs.please.outputs.released == 'true'
+    needs: [plan]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -104,6 +135,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.plan.outputs.tag }}
       - uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb # v6.1.0
         with:
           python-version: "3.12"
@@ -114,7 +147,16 @@ jobs:
           node-version: "24"
       - run: npm ci --prefix ui && npm run build --prefix ui
       - run: uv build
-      # The twine this bundles has to understand the metadata hatchling
-      # writes. v1.12.2 shipped one that predates Metadata-Version 2.5 and
-      # reported the name as missing from a wheel that plainly has one.
+      - name: the interface is in the wheel
+        # It is generated and therefore gitignored, and a build backend that
+        # skips what version control ignores would ship a server serving a
+        # blank page. Checked here rather than discovered by whoever installs.
+        run: |
+          set -euo pipefail
+          wheel=$(ls dist/*.whl)
+          unzip -l "$wheel" | grep -q "server/web/index.html"
+          echo "the interface is in $wheel"
+      # The twine this bundles has to understand the metadata hatchling writes.
+      # v1.12.2 shipped one that predates Metadata-Version 2.5 and reported the
+      # name as missing from a wheel that plainly has one.
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
