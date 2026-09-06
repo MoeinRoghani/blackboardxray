@@ -231,3 +231,46 @@ class TestProvisioningFromTheEnvironment:
         )
         made = provision(database, wanted)
         assert any("could not create" in line for line in made)
+
+
+class TestGettingBackIn:
+    """The only path back for somebody who forgot their password."""
+
+    def test_nothing_in_the_interface_recovers_an_account(
+        self, client: Any, database: Any
+    ) -> None:
+        # Worth stating as a test, because it is the reason the command line
+        # carries `password` and the reason an admin cannot set somebody
+        # else's: if they could, every account in the organization would be
+        # inside an admin's reach, including an owner's.
+        client.post(
+            "/api/v1/setup",
+            json={"email": "first@example.com", "password": PASSWORD},
+        )
+        org = client.get("/api/v1/orgs").json()["organizations"][0]
+
+        # An invitation to an address that already has an account asks for that
+        # account's password, which is exactly what has been lost.
+        token = client.post(
+            f"/api/v1/orgs/{org['id']}/invites",
+            json={"email": "first@example.com", "role": "member"},
+        ).json()["token"]
+        answer = client.post(
+            "/api/v1/auth/join",
+            json={"token": token, "password": "a guess at the old one"},
+        )
+        assert answer.status_code == 401
+
+    def test_the_command_line_sets_a_new_one(self, database: Any) -> None:
+        people = database.people
+        user = people.create_user("locked@example.com", PASSWORD)
+        signed = people.sign_in("locked@example.com", PASSWORD)
+        assert signed is not None
+
+        people.set_password(user.id, "a brand new long phrase")
+
+        assert people.sign_in("locked@example.com", PASSWORD) is None
+        assert people.sign_in("locked@example.com", "a brand new long phrase")
+        # Somebody who could not sign in has no session worth keeping, and one
+        # still open is one somebody else may be holding.
+        assert people.read_session(signed.session.value) is None

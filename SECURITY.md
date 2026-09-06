@@ -91,6 +91,17 @@ is a Python process that sends no `Origin` at all.
 
 Signing out deletes the session. Changing a password deletes every session.
 
+## Recovering an account
+
+There is no self-service password reset and no admin-facing one. An admin who
+could set another person's password would have every account in the
+organization inside their reach, including an owner's, which would make
+`admin` and `owner` the same role.
+
+Recovery is `blackboardxray password <email>` on the host, which needs access
+to the database. Whoever has that can already read everything, so the command
+grants nothing new. It ends every session the account had.
+
 ## Hardening a deployment
 
 - Put it behind whatever already fronts your internal tools, and forward

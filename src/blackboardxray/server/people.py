@@ -548,6 +548,25 @@ class People:
             return None
         return Access(user=user, project=project, organization=organization, role=role)
 
+    def project_members(self, project_id: int, org_id: int) -> list[dict[str, Any]]:
+        """Everybody in the organization, and what each reads this project as.
+
+        Both roles, because the screen has to say what applies now and where it
+        came from. Returning only the effective one would leave a control
+        unable to tell "admin because the organization says so" from "admin
+        because somebody set it here", and those are undone differently.
+        """
+        return self._db.rows(
+            "SELECT u.public_id AS id, u.email, u.name, m.role AS org_role,"
+            " pr.role AS project_role"
+            " FROM xray_memberships m"
+            " JOIN xray_users u ON u.id = m.user_id"
+            " LEFT JOIN xray_project_roles pr"
+            "   ON pr.user_id = m.user_id AND pr.project_id = %s"
+            " WHERE m.org_id = %s ORDER BY u.email",
+            (project_id, org_id),
+        )
+
     def set_project_role(
         self, project_id: int, user_id: int, role: Role | None
     ) -> None:

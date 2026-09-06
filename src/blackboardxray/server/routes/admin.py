@@ -340,6 +340,16 @@ def router(store: Database, guard: Guard) -> APIRouter:
         found, _ = guard.organization(org, caller, Permission.MANAGE_MEMBERS)
         return {"entries": people.audit(found.id)}
 
+    @api.get("/projects/{project}/members")
+    def project_members(
+        project: str, caller: Caller = Depends(guard.caller)
+    ) -> dict[str, Any]:
+        """Who reads this project, and whether a role here overrides theirs."""
+        access = guard.project(project, caller, Permission.MANAGE_PROJECT)
+        return {
+            "members": people.project_members(access.project.id, access.organization.id)
+        }
+
     # A role on one project
 
     @api.put("/projects/{project}/members/{member}")

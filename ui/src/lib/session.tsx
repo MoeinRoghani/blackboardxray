@@ -115,14 +115,6 @@ export function useSession(): Session {
   return found;
 }
 
-/** The person signed in, where a screen has already established there is one. */
-export function usePerson(): Person {
-  const { state, me } = useSession();
-  const found = me?.user ?? state?.user;
-  if (!found) throw new Error("usePerson is only usable behind a sign in");
-  return found;
-}
-
 export function useSignIn() {
   const { refresh } = useSession();
   const client = useQueryClient();

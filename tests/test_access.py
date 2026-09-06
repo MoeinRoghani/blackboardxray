@@ -284,3 +284,109 @@ class TestCrossSiteRequests:
             headers={"authorization": f"Bearer {world.key.value}", "origin": ""},
         )
         assert answer.status_code == 202
+
+
+class TestARoleOnOneProject:
+    """The override the tenancy model turns on, over HTTP."""
+
+    def test_the_screen_is_told_both_roles(self, client: Any, world: Any) -> None:
+        # A control that showed only the effective role could not tell "admin
+        # because the organization says so" from "admin because somebody set it
+        # here", and those are undone differently.
+        person(world, "both@example.com", Role.MEMBER)
+        as_person(client, "owner@example.com")
+        listed = client.get(
+            f"/api/v1/projects/{world.project.public_id}/members"
+        ).json()["members"]
+        theirs = next(one for one in listed if one["email"] == "both@example.com")
+        assert theirs["org_role"] == "member"
+        assert theirs["project_role"] is None
+
+    def test_setting_one_changes_what_they_may_do_here_only(
+        self, client: Any, world: Any
+    ) -> None:
+        other = world.people.create_project(
+            world.org.id, "staging", "Staging", world.owner.id
+        )
+        subject = person(world, "raised@example.com", Role.MEMBER)
+        as_person(client, "owner@example.com")
+
+        answer = client.put(
+            f"/api/v1/projects/{world.project.public_id}/members/{subject.public_id}",
+            json={"role": "admin"},
+        )
+        assert answer.status_code == 200
+
+        # Admin here, still a member on the project next to it.
+        assert world.people.access(subject, world.project).role is Role.ADMIN
+        assert world.people.access(subject, other).role is Role.MEMBER
+
+    def test_it_lowers_as_well_as_raises(self, client: Any, world: Any) -> None:
+        # Taking the greater of the two would make it impossible to give
+        # somebody less on one project than they have everywhere else.
+        subject = person(world, "lowered@example.com", Role.ADMIN)
+        as_person(client, "owner@example.com")
+        client.put(
+            f"/api/v1/projects/{world.project.public_id}/members/{subject.public_id}",
+            json={"role": "viewer"},
+        )
+        assert world.people.access(subject, world.project).role is Role.VIEWER
+
+    def test_clearing_it_returns_them_to_the_organization(
+        self, client: Any, world: Any
+    ) -> None:
+        subject = person(world, "cleared@example.com", Role.MEMBER)
+        as_person(client, "owner@example.com")
+        path = f"/api/v1/projects/{world.project.public_id}/members/{subject.public_id}"
+        client.put(path, json={"role": "viewer"})
+        assert world.people.access(subject, world.project).role is Role.VIEWER
+        client.put(path, json={"role": ""})
+        assert world.people.access(subject, world.project).role is Role.MEMBER
+
+    def test_a_member_may_not_see_who_reads_the_project(
+        self, client: Any, world: Any
+    ) -> None:
+        person(world, "nosy@example.com", Role.MEMBER)
+        as_person(client, "nosy@example.com")
+        answer = client.get(f"/api/v1/projects/{world.project.public_id}/members")
+        assert answer.status_code == 403
+
+    def test_nobody_grants_above_their_own(self, client: Any, world: Any) -> None:
+        admin = person(world, "granting@example.com", Role.ADMIN)
+        subject = person(world, "granted@example.com", Role.MEMBER)
+        as_person(client, "granting@example.com")
+        answer = client.put(
+            f"/api/v1/projects/{world.project.public_id}/members/{subject.public_id}",
+            json={"role": "owner"},
+        )
+        assert answer.status_code == 403
+        assert world.people.access(admin, world.project).role is Role.ADMIN
+
+
+class TestASecondOrganization:
+    def test_anybody_signed_in_may_make_one_and_owns_it(
+        self, client: Any, world: Any
+    ) -> None:
+        # Gating this on a permission would need a role above owner, which is a
+        # role that exists only to be the person who forgot to hand it over.
+        joiner = person(world, "founder@example.com", Role.VIEWER)
+        as_person(client, "founder@example.com")
+        answer = client.post("/api/v1/orgs", json={"name": "Their Own Thing"})
+        assert answer.status_code == 201
+        made = answer.json()
+        assert made["slug"] == "their-own-thing"
+
+        listed = client.get("/api/v1/orgs").json()["organizations"]
+        theirs = next(one for one in listed if one["id"] == made["id"])
+        assert theirs["role"] == "owner"
+        assert world.people.org_role(world.org.id, joiner.id) is Role.VIEWER
+
+    def test_it_is_separate_from_the_one_they_were_in(
+        self, client: Any, world: Any
+    ) -> None:
+        person(world, "separate@example.com", Role.MEMBER)
+        as_person(client, "separate@example.com")
+        made = client.post("/api/v1/orgs", json={"name": "Separate"}).json()
+        # Nobody else is in it, which is the point of a second organization.
+        members = client.get(f"/api/v1/orgs/{made['id']}/members").json()["members"]
+        assert [one["email"] for one in members] == ["separate@example.com"]

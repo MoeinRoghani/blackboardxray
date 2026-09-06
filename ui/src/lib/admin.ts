@@ -192,12 +192,35 @@ export function useRevokeInvite(org: string) {
   });
 }
 
+export interface ProjectMemberRow {
+  id: string;
+  email: string;
+  name: string;
+  org_role: string;
+  /** Null where the organization's role applies unchanged. */
+  project_role: string | null;
+}
+
+export function useProjectMembers(
+  project: string
+): UseQueryResult<{ members: ProjectMemberRow[] }, ApiError> {
+  return useQuery<{ members: ProjectMemberRow[] }, ApiError>({
+    queryKey: ["project-members", project],
+    queryFn: () => get(`/projects/${project}/members`),
+    enabled: Boolean(project),
+    retry: false,
+  });
+}
+
 export function useSetProjectRole(project: string) {
   const client = useQueryClient();
   return useMutation<unknown, ApiError, { member: string; role: string }>({
     mutationFn: ({ member, role }) =>
       put(`/projects/${project}/members/${member}`, { role }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["me"] }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["project-members", project] });
+      client.invalidateQueries({ queryKey: ["me"] });
+    },
   });
 }
 

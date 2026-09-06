@@ -2,6 +2,7 @@
 
     blackboardxray serve
     blackboardxray owner <email> [name]
+    blackboardxray password <email>
     blackboardxray key <organization> <project> [name]
     blackboardxray migrate
 
@@ -9,9 +10,15 @@
 needs. Organizations, projects, keys and people are made in the interface.
 
 The rest are the way back in when the interface cannot help: nobody has an
-account yet and the setup screen is not reachable, or the last owner has left,
-or an application needs a key at three in the morning and the person who can
-issue one is asleep. Each prints what it made once.
+account yet and the setup screen is not reachable, somebody forgot their
+password, the last owner has left, or an application needs a key at three in
+the morning and the person who can issue one is asleep.
+
+`password` is deliberately here and nowhere else. This platform sends no mail,
+so there is no link to send, and letting an admin set somebody else's password
+would put every account in the organization inside an admin's reach, including
+an owner's. Whoever can reach the database can already read everything, so that
+is the level this belongs at and the only one that grants nothing new.
 """
 
 from __future__ import annotations
@@ -47,6 +54,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if command == "owner":
             return _owner(database, arguments)
+        if command == "password":
+            return _password(database, arguments)
         if command == "key":
             return _key(database, arguments)
         print(__doc__)
@@ -76,7 +85,8 @@ def _owner(database: Database, arguments: list[str]) -> int:
         print(weak)
         return 2
     except AlreadyExists:
-        print(f"{email} already has an account. Sign in, or reset it in the interface.")
+        print(f"{email} already has an account.")
+        print("To set a new password on it: blackboardxray password " + email)
         return 2
     except PeopleError as refused:
         print(refused)
@@ -94,6 +104,42 @@ def _owner(database: Database, arguments: list[str]) -> int:
         organization = database.people.create_organization(slug, "Default", user.id)
     print(f"account:      {user.email}")
     print(f"organization: {organization.slug}, and you own it")
+    return 0
+
+
+def _password(database: Database, arguments: list[str]) -> int:
+    """Sets a new password on an account that already exists.
+
+    The only way back in for somebody who has forgotten theirs. Nothing else
+    recovers an account: the platform sends no mail, and an invitation to an
+    address that already has an account asks for that account's password, which
+    is exactly what has been lost.
+
+    Every session belonging to the account ends, because somebody who cannot
+    sign in has no session worth keeping and one that is still open is a
+    session somebody else may be holding.
+    """
+    if len(arguments) < 2:
+        print("usage: blackboardxray password <email>")
+        return 2
+    email = arguments[1]
+    rows = database.rows(
+        "SELECT id, email FROM xray_users WHERE email_folded = lower(%s)", (email,)
+    )
+    if not rows:
+        print(f"no account for {email}")
+        return 2
+    replacement = getpass.getpass("new password: ")
+    if replacement != getpass.getpass("again: "):
+        print("those did not match")
+        return 2
+    try:
+        database.people.set_password(int(rows[0]["id"]), replacement)
+    except WeakPassword as weak:
+        print(weak)
+        return 2
+    print(f"the password for {rows[0]['email']} is set")
+    print("Every session it had has ended.")
     return 0
 
 

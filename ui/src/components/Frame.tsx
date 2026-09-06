@@ -12,7 +12,17 @@
  */
 import type { ReactNode } from "react";
 import { Link, NavLink, useParams } from "react-router-dom";
-import { Building2, Check, ChevronsUpDown, LogOut, Moon, Settings, Sun, User } from "lucide-react";
+import {
+  Building2,
+  Check,
+  ChevronsUpDown,
+  LogOut,
+  Moon,
+  Plus,
+  Settings,
+  Sun,
+  User,
+} from "lucide-react";
 import * as Menu from "@radix-ui/react-dropdown-menu";
 import { cn } from "@/lib/cn";
 import { count } from "@/lib/format";
@@ -187,6 +197,16 @@ function Switcher() {
               ) : null}
             </Menu.Group>
           ))}
+          <Menu.Separator className="my-1 h-px bg-hairline" />
+          <Menu.Item asChild>
+            <Link
+              to="/orgs/new"
+              className="move-state flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 type-caption text-text-2 outline-none data-[highlighted]:bg-hover data-[highlighted]:text-text"
+            >
+              <Plus size={12} aria-hidden />
+              New organization
+            </Link>
+          </Menu.Item>
         </Menu.Content>
       </Menu.Portal>
     </Menu.Root>

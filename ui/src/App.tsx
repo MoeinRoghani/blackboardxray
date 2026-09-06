@@ -16,7 +16,7 @@ import { Agents } from "@/routes/Agents";
 import { Board } from "@/routes/Board";
 import { Boards } from "@/routes/Boards";
 import { FirstRun, Join, SignIn } from "@/routes/Gate";
-import { OrgSettings } from "@/routes/OrgSettings";
+import { NewOrganization, OrgSettings } from "@/routes/OrgSettings";
 import { Platform } from "@/routes/Platform";
 import { ProjectSettings } from "@/routes/ProjectSettings";
 import { useSession } from "@/lib/session";
@@ -36,6 +36,7 @@ export function App() {
         <Route path="/p/:projectId/boards/:boardId" element={<Board />} />
         <Route path="/p/:projectId/agents" element={<Agents />} />
         <Route path="/p/:projectId/settings" element={<ProjectSettings />} />
+        <Route path="/orgs/new" element={<NewOrganization />} />
         <Route path="/orgs/:orgId/settings" element={<OrgSettings />} />
         <Route path="/account" element={<Account />} />
         <Route path="/platform" element={<Platform />} />

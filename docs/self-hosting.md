@@ -189,9 +189,23 @@ database directly and does not need the server running.
 
 ```
 docker compose exec xray blackboardxray owner you@example.com "Your Name"
+docker compose exec -it xray blackboardxray password you@example.com
 docker compose exec xray blackboardxray key acme production "ci"
 ```
 
 `owner` makes an account and gives it ownership of the default organization,
-and is safe on an install that already has people. `key` issues a key for one
-project and prints it once.
+and is safe on an install that already has people. `password` sets a new one
+on an account that exists and ends every session it had. `key` issues a key
+for one project and prints it once.
+
+**`password` is the only way back for somebody who has forgotten theirs.**
+This platform sends no mail, so there is no link to send, and an invitation to
+an address that already has an account asks for that account's password, which
+is exactly what has been lost. It is deliberately not in the interface: an
+admin who could set somebody else's password would have every account in the
+organization inside their reach, including an owner's. Whoever can reach the
+database can already read everything, so that is the level this belongs at and
+the only one that grants nothing new.
+
+Note `-it`, which the other two do not need: it prompts for the password
+rather than taking it as an argument that would land in your shell history.

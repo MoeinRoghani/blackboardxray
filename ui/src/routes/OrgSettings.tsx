@@ -30,6 +30,7 @@ import { Secret } from "@/routes/Gate";
 import { ago } from "@/lib/format";
 import {
   useCreateInvite,
+  useCreateOrganization,
   useCreateProject,
   useDeleteOrganization,
   useInvites,
@@ -400,5 +401,74 @@ function Removal({ org, name }: { org: string; name: string }) {
         </div>
       </div>
     </Panel>
+  );
+}
+
+
+/**
+ * A second organization.
+ *
+ * Anybody signed in may make one and owns what they made. Gating it on a
+ * permission would need a role above owner, which is a role that exists only to
+ * be the person who forgot to hand it over.
+ *
+ * A separate organization, rather than another project, is for work that
+ * different people should see: membership is per organization, so this is the
+ * only boundary that keeps one team's runs away from another's.
+ */
+export function NewOrganization() {
+  const create = useCreateOrganization();
+  const navigate = useNavigate();
+  const [name, setName] = useState("");
+
+  return (
+    <Frame>
+      <div className="scroll-end min-h-0 overflow-y-auto bg-field">
+        <div className="mx-auto grid max-w-xl gap-3 p-4">
+          <header>
+            <h1 className="type-title">New organization</h1>
+            <p className="measure pt-1 type-small text-text-2">
+              An organization owns projects and the people who may read them.
+              Make one when a different set of people should see a different set
+              of runs; if the same people should see it, make a project instead.
+            </p>
+          </header>
+          <Panel title="What it is called">
+            <form
+              className="grid gap-3 p-3"
+              onSubmit={(event: FormEvent) => {
+                event.preventDefault();
+                create.mutate(
+                  { name },
+                  { onSuccess: (made) => navigate(`/orgs/${made.id}/settings`) }
+                );
+              }}
+            >
+              <Field
+                label="Name"
+                hint="Your company, or the team this belongs to. You will own it."
+              >
+                {(id) => (
+                  <Input
+                    id={id}
+                    autoFocus
+                    required
+                    placeholder="Acme"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                  />
+                )}
+              </Field>
+              <Refused error={create.error} />
+              <div>
+                <Button type="submit" tone="primary" busy={create.isPending}>
+                  Create organization
+                </Button>
+              </div>
+            </form>
+          </Panel>
+        </div>
+      </div>
+    </Frame>
   );
 }

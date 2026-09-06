@@ -20,6 +20,7 @@ import {
   Panel,
   Refused,
   Row,
+  Select,
 } from "@/components/Form";
 import { Secret } from "@/routes/Gate";
 import { cn } from "@/lib/cn";
@@ -29,7 +30,9 @@ import {
   useCreateKey,
   useDeleteProject,
   useKeys,
+  useProjectMembers,
   useRevokeKey,
+  useSetProjectRole,
 } from "@/lib/admin";
 import { useProjectId } from "@/lib/api";
 import { useSession } from "@/lib/session";
@@ -62,6 +65,7 @@ export function ProjectSettings() {
           ) : (
             <>
               <Keys project={project} />
+              <Access project={project} mine={here?.role ?? "none"} />
               <Retention project={project} current={here?.retention_days ?? null} />
               <Removal project={project} name={here?.name ?? ""} />
             </>
@@ -185,6 +189,80 @@ function Keys({ project }: { project: string }) {
         </Row>
       ))}
       <Refused error={revoke.error} />
+    </Panel>
+  );
+}
+
+/** How the roles rank, so the control offers only what this person may grant. */
+const RANK: Record<string, number> = {
+  none: 0,
+  viewer: 1,
+  member: 2,
+  admin: 3,
+  owner: 4,
+};
+
+/**
+ * Who may read this project, and who reads it differently from the rest.
+ *
+ * The organization decides by default. A row here overrides it in either
+ * direction: it raises somebody to admin on the one project they run, and it
+ * is how a person whose organization role is `none` is given exactly this
+ * project and nothing else. Clearing the override returns them to whatever the
+ * organization says, which is why the choice is "same as the organization"
+ * rather than a role that happens to match.
+ */
+function Access({
+  project,
+  mine,
+}: {
+  project: string;
+  mine: string;
+}) {
+  const members = useProjectMembers(project);
+  const set = useSetProjectRole(project);
+  const rows = members.data?.members ?? [];
+  const offerable = Object.keys(RANK).filter((role) =>
+    role === "owner" ? mine === "owner" : RANK[mine] > RANK[role]
+  );
+
+  return (
+    <Panel
+      title="Who reads this project"
+      note="Everybody in the organization reads it with the role they have there. Give somebody a different one here and it applies to this project only."
+    >
+      {members.isLoading ? <Nothing>Loading people.</Nothing> : null}
+      {!members.isLoading && rows.length === 0 ? (
+        <Nothing>Nobody is in this organization yet.</Nothing>
+      ) : null}
+      {rows.map((member) => (
+        <Row key={member.id}>
+          <span className="flex min-w-0 flex-col">
+            <span className="truncate type-caption text-text">
+              {member.name || member.email}
+            </span>
+            <span className="truncate type-caption text-text-2">
+              {member.org_role} in the organization
+              {member.project_role ? `, ${member.project_role} here` : ""}
+            </span>
+          </span>
+          <Select
+            value={member.project_role ?? ""}
+            aria-label={`What ${member.email} reads this project as`}
+            onChange={(event: { target: { value: string } }) =>
+              set.mutate({ member: member.id, role: event.target.value })
+            }
+          >
+            <option value="">same as the organization</option>
+            {offerable.map((role) => (
+              <option key={role} value={role}>
+                {role} here
+              </option>
+            ))}
+          </Select>
+        </Row>
+      ))}
+      <Refused error={set.error} />
     </Panel>
   );
 }
