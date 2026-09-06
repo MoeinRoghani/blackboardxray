@@ -35,7 +35,7 @@
   body {
     /* Cuts the 300ms tap delay without disabling pinch zoom. */
     touch-action: manipulation;
-    background-color: var(--canvas);
+    background-color: var(--void);
     color: var(--text);
     font-family: var(--font-text);
     font-size: var(--text-body-size);
@@ -104,73 +104,107 @@
     text-transform: uppercase; color: var(--text-2);
   }
 
-  /* The chrome is a material: translucent, saturating what passes under it. */
-  .chrome {
-    background: color-mix(in srgb, var(--canvas) 72%, transparent);
-    backdrop-filter: blur(var(--material-chrome-blur)) saturate(180%);
-    -webkit-backdrop-filter: blur(var(--material-chrome-blur)) saturate(180%);
-    border-bottom: var(--material-hairline-weight) solid var(--hairline);
+  /* THE FRAME.
+
+     Weight comes from structure, not from shadow. The application is welded to
+     the viewport edges, divided into fixed bands by full-bleed rules, and the
+     one region that scrolls is cut into it as a recess. Nothing floats on a
+     ground, because a panel floating on a ground reads as a document about the
+     system rather than as the instrument itself. */
+
+  /* A fixed band across the frame: the top bar, the chart, the facets, the
+     status line. The sheen along its top edge is what makes it read as a
+     surface catching light rather than as a rectangle of a different colour. */
+  .band {
+    background: var(--chrome);
+    box-shadow: inset 0 var(--material-hairline-weight) 0 var(--sheen);
+  }
+  .band-under { border-bottom: var(--material-hairline-weight) solid var(--rule); }
+  .band-over  { border-top: var(--material-hairline-weight) solid var(--rule); }
+
+  /* A recess cut into the frame. The interior is a rung below what surrounds
+     it and carries the shadow of the edge above it, so the eye reads a hole
+     rather than a darker panel. Charts and timelines live in one: it is the
+     signal that their contents are being looked into, not laid on top. */
+  .well {
+    background: var(--well);
+    border-radius: var(--radius-md);
+    box-shadow:
+      inset 0 var(--material-recess-near) var(--material-recess-spread) var(--recess),
+      inset 0 var(--material-hairline-weight) 0 var(--recess),
+      0 var(--material-hairline-weight) 0 var(--sheen);
   }
 
-  /* A raised plane carries a light edge along its top, the way a real surface
-     catches light, and a shadow with both offset and blur underneath it. */
+  /* The content plane: where rows live. It is the rung above the field. */
   .plane {
-    background: var(--surface);
-    border: var(--material-hairline-weight) solid var(--hairline);
-    border-radius: var(--radius-lg);
-    box-shadow:
-      inset 0 var(--material-lift-near) 0 color-mix(in srgb, var(--text) 6%, transparent),
-      0 var(--material-lift-near) var(--material-spread-near) color-mix(in srgb, var(--canvas) 60%, transparent),
-      0 var(--material-lift-mid) var(--material-spread-mid) var(--material-tuck) color-mix(in srgb, var(--canvas) 90%, transparent);
+    background: var(--plane);
   }
 
-  /* A pushed layer. Its inset left edge is what makes a stack read as a stack. */
-  .sheet {
-    background: var(--sheet);
+  /* A panel raised off the plane, for the inspector and for a popover. Its
+     leading rule is structural, so it holds at any height. */
+  .raised {
+    background: var(--plane);
     box-shadow:
-      inset var(--material-edge-weight) 0 0 color-mix(in srgb, var(--text) 10%, transparent),
-      calc(var(--material-edge-weight) * -1) 0 0 color-mix(in srgb, var(--canvas) 70%, transparent),
-      calc(var(--material-lift-far) * -1) 0 var(--material-sheet-blur) var(--material-tuck-far) color-mix(in srgb, var(--canvas) 95%, transparent);
+      inset var(--material-hairline-weight) 0 0 var(--sheen),
+      calc(var(--material-lift-mid) * -1) 0 var(--material-spread-mid)
+        var(--material-tuck) var(--recess);
   }
 
   .chip {
     display: inline-flex; align-items: center; gap: var(--space-1);
     padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm);
-    border: var(--material-edge-weight) solid var(--edge); background: var(--surface-2);
+    border: var(--material-edge-weight) solid var(--edge); background: var(--plane-2);
     color: var(--text-2); white-space: nowrap;
   }
 
-  /* The grab handle on a sheet's leading edge: the affordance that says this
-     plane can be dragged away. */
-  .grab {
-    position: absolute; inset-inline-start: var(--material-grab-weight); top: 50%;
-    transform: translateY(-50%);
-    width: var(--material-grab-weight); height: var(--material-grab-length); border-radius: var(--radius-full);
-    background: var(--edge-strong); opacity: 0.6;
+  /* A line of prose stops at a readable measure whatever the column it is in.
+     The settings page ran to a hundred and eighteen characters, which is a
+     line the eye loses on the way back to the start of the next one. */
+  .measure { max-width: var(--layout-measure); }
+
+  /* A scrolling region leaves room under its last row. Without it the final
+     row is cut by the bottom of the frame and reads as a rendering fault
+     rather than as the end of the list. */
+  .scroll-end { padding-bottom: var(--space-6); }
+
+  /* The three tables in this product, each stated once. A grid template is a
+     decision about what a column is for, so it lives here beside the scale it
+     is built from and not inside the component that happens to draw it. The
+     header and the rows read the same class, which is what makes a heading
+     unable to drift away from the column it names. */
+  .cols-boards {
+    grid-template-columns:
+      var(--column-word) minmax(var(--column-min-name), 1fr) var(--column-measure)
+      var(--column-measure) var(--column-count) var(--column-count) var(--column-count)
+      var(--column-count) var(--column-measure) minmax(var(--column-word), var(--column-max-list));
+  }
+  .cols-events {
+    grid-template-columns:
+      var(--column-measure) var(--column-count) var(--column-phrase) var(--column-name)
+      var(--column-name) minmax(0, 1fr);
+  }
+  .cols-agents {
+    grid-template-columns:
+      minmax(var(--column-name), 1fr) var(--column-count) var(--column-count)
+      var(--column-count) var(--column-count) var(--column-measure) var(--column-word)
+      var(--column-word);
+  }
+
+  /* A row in the dense table. The hairline is drawn on the row rather than
+     between rows, so a virtualised window that starts mid-list still has one. */
+  .row {
+    border-bottom: var(--material-hairline-weight) solid var(--hairline);
+  }
+  .row:hover { background: var(--hover); }
+  .row[aria-selected="true"] {
+    background: var(--live-wash);
+    box-shadow: inset var(--material-grab-weight) 0 0 var(--live-solid);
   }
 }
 
 @layer utilities {
-  /* The canvas recedes behind a pushed layer, scaling back and dimming, so
-     depth is something the reader sees rather than infers. */
-  .recede {
-    /* No horizontal travel. Sliding it left by the same amount the scale
-       insets it puts the left edge back at zero, and the inset is the whole
-       signal that the plane has moved away from the reader. */
-    transform: scale(0.94);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    filter: saturate(0.7) brightness(0.62);
-  }
-  .recede-1 { transform: scale(0.985); filter: brightness(0.5) saturate(0.7); }
-
-  .move-canvas {
-    transition: transform var(--duration-sheet) var(--easing-sheet),
-                filter var(--duration-sheet) var(--easing-sheet),
-                border-radius var(--duration-sheet) var(--easing-sheet);
-  }
-  .move-sheet {
-    transition: transform var(--duration-sheet) var(--easing-sheet),
+  .move-panel {
+    transition: transform var(--duration-panel) var(--easing-sheet),
                 opacity var(--duration-panel) var(--easing-sheet);
   }
   .move-state { transition: background-color var(--duration-hover) var(--easing-standard),
@@ -198,8 +232,7 @@
   .shimmer { animation: bxr-shimmer 1.5s var(--easing-standard) infinite; }
 
   @media (prefers-reduced-motion: reduce) {
-    .move-canvas, .move-sheet, .move-state { transition: none; }
-    .scrim-in, .rise, .pulse, .shimmer { animation: none; }
-    .recede, .recede-1 { transform: none; }
+    .move-panel, .move-state { transition: none; }
+    .scrim-in, .rise, .pulse, .shimmer, .flow { animation: none; }
   }
 }

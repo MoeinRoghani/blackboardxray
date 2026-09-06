@@ -17,7 +17,7 @@ import secrets
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -272,24 +272,23 @@ class Database:
         outcome: str | None = None,
         agent: str | None = None,
         search: str | None = None,
+        unfinished: bool = False,
+        since: datetime | None = None,
+        until: datetime | None = None,
     ) -> list[dict[str, Any]]:
-        where = ["project_id = %s"]
-        args: list[Any] = [project_id]
-        if outcome == "open":
-            where.append("outcome IS NULL")
-        elif outcome:
-            where.append("outcome = %s")
-            args.append(outcome)
-        if agent:
-            where.append("%s = ANY(agents)")
-            args.append(agent)
-        if search:
-            where.append("board_id ILIKE %s")
-            args.append(f"%{search}%")
+        where, args = _narrow(
+            project_id,
+            outcome=outcome,
+            agent=agent,
+            search=search,
+            unfinished=unfinished,
+            since=since,
+            until=until,
+        )
         args.extend([limit, offset])
         return self._rows(
             "SELECT * FROM xray_runs WHERE "
-            + " AND ".join(where)
+            + where
             + " ORDER BY last_event_at DESC LIMIT %s OFFSET %s",
             tuple(args),
         )
@@ -301,25 +300,124 @@ class Database:
         outcome: str | None = None,
         agent: str | None = None,
         search: str | None = None,
+        unfinished: bool = False,
+        since: datetime | None = None,
+        until: datetime | None = None,
     ) -> int:
-        where = ["project_id = %s"]
-        args: list[Any] = [project_id]
-        if outcome == "open":
-            where.append("outcome IS NULL")
-        elif outcome:
-            where.append("outcome = %s")
-            args.append(outcome)
-        if agent:
-            where.append("%s = ANY(agents)")
-            args.append(agent)
-        if search:
-            where.append("board_id ILIKE %s")
-            args.append(f"%{search}%")
+        where, args = _narrow(
+            project_id,
+            outcome=outcome,
+            agent=agent,
+            search=search,
+            unfinished=unfinished,
+            since=since,
+            until=until,
+        )
         rows = self._rows(
-            "SELECT count(*) AS total FROM xray_runs WHERE " + " AND ".join(where),
-            tuple(args),
+            "SELECT count(*) AS total FROM xray_runs WHERE " + where, tuple(args)
         )
         return int(rows[0]["total"]) if rows else 0
+
+    def histogram(
+        self,
+        project_id: int,
+        *,
+        step_seconds: float,
+        buckets: int,
+        until: datetime | None = None,
+        outcome: str | None = None,
+        agent: str | None = None,
+        search: str | None = None,
+        unfinished: bool = False,
+    ) -> dict[str, Any]:
+        """Returns runs opened per interval, split by outcome, gaps included.
+
+        The chart it feeds is continuous, so an interval in which nothing
+        opened has to arrive as a zero rather than be absent. A client cannot
+        infer the difference: a missing bucket and a quiet one look the same
+        once the rows are drawn side by side, and the quiet one is the reading
+        an operator most needs.
+        """
+        step = timedelta(seconds=max(1.0, step_seconds))
+        edge = _floor(until if until is not None else datetime.now(UTC), step)
+        origin = edge - step * (max(1, buckets) - 1)
+        where, args = _narrow(
+            project_id,
+            outcome=outcome,
+            agent=agent,
+            search=search,
+            unfinished=unfinished,
+        )
+        rows = self._rows(
+            "WITH slot AS ("
+            "  SELECT generate_series(%s::timestamptz, %s::timestamptz, %s::interval)"
+            "    AS at"
+            "), tally AS ("
+            "  SELECT date_bin(%s::interval, opened_at, %s::timestamptz) AS at,"
+            "   count(*) FILTER (WHERE outcome IS NULL) AS open,"
+            "   count(*) FILTER (WHERE outcome = 'settled') AS settled,"
+            "   count(*) FILTER (WHERE outcome = 'aborted') AS aborted,"
+            "   count(*) FILTER (WHERE outcome = 'wall_clock_expired') AS expired"
+            "  FROM xray_runs WHERE " + where + " AND opened_at >= %s::timestamptz"
+            "  GROUP BY 1"
+            ")"
+            " SELECT slot.at,"
+            "  coalesce(tally.open, 0)::bigint AS open,"
+            "  coalesce(tally.settled, 0)::bigint AS settled,"
+            "  coalesce(tally.aborted, 0)::bigint AS aborted,"
+            "  coalesce(tally.expired, 0)::bigint AS expired"
+            " FROM slot LEFT JOIN tally ON tally.at = slot.at ORDER BY slot.at",
+            (origin, edge, step, step, origin, *args, origin),
+        )
+        return {
+            "step_seconds": step.total_seconds(),
+            "from": origin,
+            "to": edge + step,
+            "buckets": rows,
+        }
+
+    def facets(
+        self,
+        project_id: int,
+        *,
+        agent: str | None = None,
+        search: str | None = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Returns how many runs each choice would leave, at the current query.
+
+        A facet count is taken with every filter applied except its own. A
+        count taken with its own filter applied reads one for the choice
+        already made and zero for every other, which tells an operator nothing
+        about where to go next.
+        """
+        where, args = _narrow(
+            project_id, agent=agent, search=search, since=since, until=until
+        )
+        rows = self._rows(
+            "SELECT"
+            " count(*) AS total,"
+            " count(*) FILTER (WHERE outcome IS NULL) AS open,"
+            " count(*) FILTER (WHERE outcome = 'settled') AS settled,"
+            " count(*) FILTER (WHERE outcome = 'aborted') AS aborted,"
+            " count(*) FILTER (WHERE outcome = 'wall_clock_expired') AS expired,"
+            " count(*) FILTER (WHERE cardinality(unfinished) > 0) AS unfinished,"
+            " coalesce(sum(n_refusals), 0)::bigint AS refusals,"
+            " coalesce(sum(n_conflicts), 0)::bigint AS conflicts,"
+            " coalesce(sum(n_failed), 0)::bigint AS failed,"
+            " coalesce(sum(n_writes), 0)::bigint AS writes"
+            " FROM xray_runs WHERE " + where,
+            tuple(args),
+        )
+        counts = rows[0] if rows else {}
+        counts["agents"] = self._rows(
+            "SELECT name, count(*)::bigint AS runs FROM xray_runs,"
+            " unnest(agents) AS name WHERE " + where + " GROUP BY name"
+            " ORDER BY runs DESC, name LIMIT 24",
+            tuple(args),
+        )
+        return counts
 
     def get_run(self, project_id: int, board_id: str) -> dict[str, Any] | None:
         rows = self._rows(
@@ -558,3 +656,57 @@ def _hash(token: str) -> str:
 
 def instant(value: datetime | None) -> str | None:
     return value.isoformat() if value is not None else None
+
+
+def _narrow(
+    project_id: int,
+    *,
+    outcome: str | None = None,
+    agent: str | None = None,
+    search: str | None = None,
+    unfinished: bool = False,
+    since: datetime | None = None,
+    until: datetime | None = None,
+) -> tuple[str, list[Any]]:
+    """Returns the clause that narrows a run query, and what fills it.
+
+    Every query over runs narrows on the same five things, so they are written
+    once. A filter written twice is a filter that drifts, and a facet count
+    taken with a clause that has drifted from the list's own is worse than no
+    facet count.
+    """
+    where = ["project_id = %s"]
+    args: list[Any] = [project_id]
+    if outcome == "open":
+        where.append("outcome IS NULL")
+    elif outcome:
+        where.append("outcome = %s")
+        args.append(outcome)
+    if agent:
+        where.append("%s = ANY(agents)")
+        args.append(agent)
+    if search:
+        where.append("board_id ILIKE %s")
+        args.append(f"%{search}%")
+    if unfinished:
+        where.append("cardinality(unfinished) > 0")
+    # A range is half open. A run opened exactly on a bar's right edge belongs
+    # to the next bar, and closing both ends would count it in two.
+    if since is not None:
+        where.append("opened_at >= %s")
+        args.append(since)
+    if until is not None:
+        where.append("opened_at < %s")
+        args.append(until)
+    return " AND ".join(where), args
+
+
+def _floor(moment: datetime, step: timedelta) -> datetime:
+    """Rounds an instant down onto the bucket grid the histogram is drawn on.
+
+    The grid is anchored to the epoch rather than to now, so a chart redrawn a
+    second later has the same bar boundaries and the bars do not slide.
+    """
+    seconds = int(step.total_seconds())
+    stamp = int(moment.timestamp()) // seconds * seconds
+    return datetime.fromtimestamp(stamp, tz=UTC)

@@ -111,20 +111,35 @@ for something the store already answers.
 
 ## Navigation map
 
-Four destinations, flat. No nesting beyond a run's own detail.
+Three destinations and one detail, flat.
 
 ```
-Overview            /                  is anything wrong
-Runs                /runs              find the run I mean
-  Run detail        /runs/:boardId     what happened, in order
-Agents              /agents            which agent misbehaves
-  Agent detail      /agents/:name      across every run
-Settings            /settings          projects and keys
+Boards      /                     is anything wrong, and which runs
+  ?board=   the inspector          what is going on inside this one
+  ?outcome= ?agent= ?unfinished=   what the list is narrowed to
+  ?since= ?until=                  the interval a chart bar selected
+  ?window=                         how much time the chart covers
+Board       /boards/:boardId      one run
+  ?view=graph                      what wrote to what, and who was told
+  ?view=events                     the record, in order
+  ?view=board                      what was written
+Agents      /agents               which agent misbehaves, across every run
+Settings    /settings             this deployment, and how to connect to it
 ```
 
-The runs list is the front door for a returning operator and the overview is the
-front door for one arriving cold. Both are one click apart, so the ordering of the
-nav is the only thing that decides which is default, and Overview is first.
+There is no Overview. It was a destination in the first build, and the counts it
+carried are the same counts that narrow the list, so they became the facet strip
+welded above the table: reading "aborted 106" and clicking it to see which 106 is
+one motion rather than two screens.
+
+Everything that changes what is on screen is a search parameter. A view an
+operator arrives at is a view they can send to someone else, and an observability
+tool whose links do not reproduce what the sender saw is one people take
+screenshots of instead.
+
+The graph is inside a board and not above one. It is a reading of a single run,
+so making it a destination would have implied there is a graph of the project,
+which there is not.
 
 ## Open questions
 

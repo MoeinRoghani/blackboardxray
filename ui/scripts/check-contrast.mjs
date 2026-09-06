@@ -106,6 +106,36 @@ const PAIRS = [
   // no floor. The edge that bounds a plane does, because nothing else says
   // where the plane stops.
   ["edge-strong", "canvas", 3],
+
+  // The frame's own planes. Every rung of the depth ladder is a background
+  // that text lands on, so each one is held to the same floor as the planes
+  // that came before it. A rung that cannot carry text is not a rung.
+  ["text", "void", 4.5],
+  ["text", "well", 4.5],
+  ["text", "chrome", 4.5],
+  ["text", "field", 4.5],
+  ["text", "plane", 4.5],
+  ["text", "plane-2", 4.5],
+  ["text-2", "chrome", 4.5],
+  ["text-2", "plane", 4.5],
+  ["text-2", "plane-2", 4.5],
+  ["text-2", "well", 4.5],
+  // There is no third text rank. Radix's ramp has two steps that clear AA on
+  // these planes, 11 and 12, and both are taken. A dimmer third was tried and
+  // this gate rejected it at 3.6:1, which is the correct answer: below the
+  // secondary rank, difference is carried by size and weight, never by a
+  // colour a reader has to work at.
+  ["focus", "plane", 3],
+  ["focus", "chrome", 3],
+  ["focus", "well", 3],
+  ["live", "plane", 4.5],
+  ["ok", "plane", 4.5],
+  ["warn", "plane", 4.5],
+  ["bad", "plane", 4.5],
+  ["live", "chrome", 4.5],
+  ["ok", "chrome", 4.5],
+  ["warn", "chrome", 4.5],
+  ["bad", "chrome", 4.5],
 ];
 
 let failed = 0;

@@ -5,8 +5,8 @@ rather than before, so every value here is one the interface actually reads.
 
 ## The world
 
-**Graphite.** Layered neutral planes, a chrome that lets content show through
-it, and no brand colour at all.
+**Graphite.** A depth ladder of neutral planes welded to the viewport edges,
+and no brand colour at all.
 
 Mode is **Operate**: the visitor completes a task, so scanability, state and
 familiar affordances outrank expression. Dials `VARIANCE 4 / MOTION 5 /
@@ -14,22 +14,28 @@ DENSITY 7`.
 
 ## The idea the shell is built on
 
-**The canvas is where you are and layers are what you are inspecting.**
+**One frame, fixed bands, one region that scrolls.**
 
-The four sibling destinations this replaced were not siblings. This product has
-one object, the run; agents are a lens on runs and totals are runs counted. So
-the menu is gone, the runs list is permanent, and everything you drill into
-arrives as a sheet over a canvas that never unmounts.
+A project opens runs continuously and holds thousands of them. That single fact
+killed three shells before this one: master and detail, a strip of run cards,
+and expanding a run in place all assume a list somebody can hold in their head.
+So the index is a query rather than a browse. The chart says whether the shape
+of the day is normal, the facet strip says what it is made of and narrows it,
+and the table is the record.
 
 | | |
 | --- | --- |
-| Canvas | Header, runs list, selected run. Never navigates away |
-| Layer | Event, agent, or settings. Pushes from the trailing edge |
-| Depth | Capped at three; past that the receded canvas stops being readable |
-| Back | Names what it returns to, and is also Escape, the scrim, a swipe, and the browser's own back button |
+| Bands | Bar, chart, facets, status. Fixed height, full bleed, never scroll |
+| Region | The table, the graph, or a settings page. The only thing that scrolls |
+| Inspector | A board opens beside the list, not after it |
+| Address | Every filter, the window, the selected board and the run view are search parameters |
 
-Every depth is a route, so a reload puts the reader where they were and any
-depth is a link somebody can paste.
+A sheet stack was built here first and thrown away. It made depth out of
+gesture, which is the wrong currency for an instrument: an operator comparing
+one run against the list it came from does not want the list pushed away.
+
+There is no Overview screen. The counts an operator would go to one for are the
+same counts that narrow the list, so they are the same control.
 
 ## No brand colour
 
@@ -51,38 +57,54 @@ action to fill.
 
 ## Material
 
-Three planes and two rules, and the rest is derived.
+Weight comes from structure, not from shadow. There is no outer margin and
+nothing floats on a ground, because an instrument is the window rather than a
+document displayed in one.
 
-- **Chrome** is translucent and saturating, so content passing under it is
-  visible and tinted rather than hidden.
-- **A raised plane** carries an inset light edge along its top, the way a real
-  surface catches light, over a shadow with both offset and blur.
-- **A sheet** adds an inset edge on its leading side. That edge is the whole
-  reason a stack of two reads as a stack.
-- **The canvas does not move** when a layer opens. It was scaled back at first,
-  which pushed it off the edges and left a band of the container showing above
-  it, and it took the run the reader was mid-way through with it. A sheet
-  arriving is not a reason to disturb what is underneath. Depth comes from the
-  sheet's own inset edge and shadow, and the canvas stays fully lit and
-  readable behind it.
+The neutrals are a **depth ladder**, not a set of shades. A component picks the
+rung it is on, so the whole frame moves by editing one file.
+
+| Rung | Job |
+| --- | --- |
+| `void` | The ground the frame sits on |
+| `well` | A recess cut into it, for a chart or a clock |
+| `chrome` | The bars welded to the top and bottom edges |
+| `field` | The band behind the chart and the facets |
+| `plane` | Where rows live |
+| `plane-2` | A sticky header, a hovered row |
+
+Two edge treatments carry the rest. A **band** takes a `sheen` along its top,
+which is what makes it read as a surface catching light rather than as a
+rectangle of a different colour, and a `rule` along the edge that divides it
+from the next region. A **well** takes an inset shadow, so the eye reads a hole
+rather than a darker panel.
+
+Radix's dark scales begin at the darkest colour a *surface* should be, which is
+two rungs above what a frame needs. Rather than pick two values by eye, the
+ramp is continued downward by its own first step, measured in OKLab lightness,
+in `build-tokens.mjs`. The result stays on the scale's hue and is reproducible,
+so the contrast gate is checking a generated value and not a taste.
+
+A **shadow is dark in both themes.** Tinting the recess with the theme's own
+ground made the light theme's wells flat grey boxes: the inset was being drawn
+in a colour lighter than what surrounded it. `recess` is its own token.
 
 ## Motion
 
 | Movement | Duration | Reason |
 | --- | --- | --- |
-| Sheet in and out | 420ms, iOS sheet curve | The layer arrives from where back will send it |
-| Layer behind slides back | 420ms, same curve | Two sheets read as a stack |
+| Inspector in and out | 420ms | A panel arriving beside the list, not over it |
 | Panel rise | 260ms | Something new is present |
 | Hover and state | 120ms | Feedback |
 | Open-run pulse | 2.2s loop | This run is still going |
+| Flow along a write edge | 2.6s loop | This run is still writing |
 
-The sheet curve is `cubic-bezier(0.32, 0.72, 0, 1)`: fast off the mark, long
-settle, no overshoot. A full-height plane that bounces reads as a toy. Drag
-tracks the pointer with no transition at all and dismisses past a third of the
-width or on a throw.
+The curve is `cubic-bezier(0.32, 0.72, 0, 1)`: fast off the mark, long settle,
+no overshoot.
 
-Two loops exist, the open-run pulse and the loading shimmer, and the first stops
-when the run closes. Every animation collapses under `prefers-reduced-motion`,
+Three loops exist, the open-run pulse, the flow dot on a live write edge, and
+the loading shimmer. The first two stop the moment the run closes, which is
+the only thing in the product that says live without saying the word. Every animation collapses under `prefers-reduced-motion`,
 which the token build enforces by writing the durations to zero.
 
 ## Tokens
@@ -92,7 +114,9 @@ Primitives hold values, semantic tokens alias them by job, components read the
 semantic tier through Tailwind. Colour primitives come from `@radix-ui/colors`
 rather than being authored, so the steps carry Radix's fixed roles.
 
-82 primitives, 240 colour steps, 26 semantic tokens, both themes.
+84 primitives, 274 colour steps, 38 semantic tokens, both themes. Column
+widths, band heights and the prose measure are tokens too: a table built from
+arbitrary widths is a table whose columns drift from the next table's.
 
 Every physical constant is a token, including line weights, blur radii, shadow
 lifts and the distance a layer slides back. A component names a role and never
@@ -107,8 +131,11 @@ Every number is tabular and lining, because every number in this product is
 compared against another one. Monospace is reserved for what is genuinely
 code: identifiers, regions, and stored content.
 
-Hierarchy is weight and size. There is no third text colour, because a faded
-tertiary grey is how a system ends up shipping text below its contrast floor.
+Hierarchy is weight and size. **There is no third text colour.** One was added
+for the status line and the contrast gate rejected it at 3.6:1, which was the
+right answer: Radix's ramp has exactly two steps that clear AA on these planes
+and both are taken. Below the secondary rank, difference is carried by size and
+weight, never by a colour a reader has to work at.
 
 ## Gates
 
@@ -117,30 +144,80 @@ Five, all in CI. A screen cannot make a decision the system did not.
 | Gate | Refuses |
 | --- | --- |
 | `npm run check` | Any hex, rgb, px, rem or arbitrary Tailwind value in `src/` |
-| `npm run contrast` | Any of 50 read pairs below its floor, in either theme |
+| `npm run contrast` | Any of 49 read pairs below its floor, in either theme |
 | `npm run typecheck` | A body field read off the wrong event kind |
 | `impeccable detect` | The mechanical design defects |
 | `pytest tests/test_wire_mirror.py` | A kind named in Python and forgotten in TypeScript |
 
+Two detector findings are standing decisions rather than defects, and both were
+checked before being kept.
+
+**`nested-cards`, a well inside a band.** That is the material this frame is
+made of: a recess cut into a fixed band is what makes the chart and the clock
+read as instruments set into a panel rather than as boxes laid on one. Removing
+it would remove the design.
+
+**`low-contrast` on the graph's own labels.** The detector measures 2.0:1 on
+SVG text. The rendered pixels were sampled and measure 4.86:1, which is
+`text-2` on `well` as the token graph says it should be. The gate that governs
+this pair is `npm run contrast`, which composites before it measures.
+
 ## Charts
 
-Four forms, chosen before any colour, and two things that are deliberately not
-charts: runs needing attention is one number, and write outcomes are six
-figures whose story is the three exceptions.
+Two forms, and both are controls rather than pictures.
 
-**A stacked outcome bar was built and thrown away.** The palette validator
-failed it: green, amber and red cannot be separated under protan vision at any
-step, which is why status colour is *reserved* and must ship with a word. A
-stacked bar forces those hues to behave categorically. Four labelled rows, one
-state each, means colour never has to do the telling and the form works at six
-runs or six thousand.
+**The index chart** is runs opened per interval, stacked by outcome,
+continuous. An interval in which nothing opened arrives as a zero and is drawn
+as a gap in the row, because a missing bucket and a quiet one look the same
+once they are side by side and the quiet one is the reading an operator most
+needs. Clicking a bar filters the table beneath it to the runs that bar
+counted, and the same clause narrows both queries so they cannot disagree.
 
-Marks follow the fixed specs: thin, a 4px rounded data-end square at the
-baseline, a recessive track, no stroke drawn around a fill. Every value is
-rendered beside its bar rather than only on hover, so a row is a table row that
-happens to carry a mark and nothing is gated behind a tooltip. The homepage is
-held at reduced opacity while refetching rather than replaced by a skeleton, so
-nothing jumps when a poll lands.
+The stack is ordered with **trouble on the baseline**. Segments that share a
+baseline are the only ones a reader can compare across bars, and comparing
+trouble across bars is what the chart is for.
+
+**On stacking outcome colours.** A stacked outcome bar was built for an earlier
+surface and thrown away, because the palette validator was right that green,
+amber and red cannot be separated under protan vision at any step. It is back
+here under a condition it did not meet then: the facet strip directly below
+names every outcome in words with its own count and its own swatch, and the
+chart's readout names the interval's counts in words as well. The hue
+reinforces a legend that is permanently on screen one row down. Where that
+legend is not present, the stack does not come back.
+
+**The run graph** is an aggregate, not a trace. A run carries hundreds of
+events and drawing an edge per event produces a hairball; one edge per agent
+and region, weighted by how much crossed it, answers where the work went and
+what did not arrive. Each thing that can happen is drawn as a different
+*shape*, so the reading never rests on hue: a write is a solid curve into the
+board, a refusal is a stub that stops at a barrier before it, delivery is a
+dashed curve back out, and a failed delivery is a broken curve ending in a
+cross.
+
+A notification names no region, because the library's notifications carry no
+values and say only that the board moved. Delivery is therefore **one path per
+agent** however many regions it reads. Attributing it to each subscribed region
+invented six paths for one fact and produced exactly the fan this drawing
+exists to avoid.
+
+A network diagram is the least accessible form in the product, so it is never
+the only copy. Events is the same run as a table and is the record; the graph
+is a reading of it, and the toggle between them is always present. Every node
+is focusable and carries in its label the counts the drawing carries in its
+weight.
+
+**The run clock** places one tick per event by when it happened rather than by
+its position in a list. That difference is the point: four hundred events look
+evenly paced in a list, and this shows the burst, then the ninety seconds of
+nothing, which is what an idle deadline expiring looks like. Height carries
+what changed the board: a write took a sequence number and is a full tick, a
+notification took none and is a short one.
+
+Every value is rendered beside its mark rather than only on hover, and the
+chart's readout is fixed in one corner rather than following the pointer: a
+tooltip crossing ninety-six targets is a value that never stops moving and it
+covers the bars either side of the one being read.
 
 An agent's response time is scaled in seconds, not rounded milliseconds:
 answering in 600 microseconds is a real magnitude and rounding it to zero threw
@@ -168,9 +245,28 @@ breakpoint, and nothing brought it back.
 The API did not carry them, so the API grew to read them off the agent's most
 recent registration.
 
+**Virtualisation was silently off.** A scrolling box only clamps if every
+ancestor between it and the fixed frame refuses to grow. One wrapper did not,
+so the table's height became its content's, the virtualiser saw all six hundred
+rows as visible, and the list paged itself to the end on first paint. A
+screenful is in the document now.
+
+**Half the table columns were unreachable below the two pane breakpoint.** The
+scroll box took vertical overflow only. The header moved inside it and the
+whole table scrolls sideways as one piece, so a heading can never drift off the
+column it names.
+
+**Search vanished entirely on a phone.** It was hidden below `md`, which left
+no way to find a board by name at all. The bar wraps instead and the field
+takes the second line.
+
+**The chart stacked trouble at the top.** A column flex puts its first child at
+the top, so the series were drawn in the reverse of the order they were
+declared in, and nothing shared a baseline.
+
 ## What is deliberately absent
 
-No left menu. No cards around data rows; at this density a card is six borders
+No Overview screen, for the reason above. No left menu. No cards around data rows; at this density a card is six borders
 and a shadow doing the work one hairline already did, and cards break the
 column alignment a reader needs to compare two runs. No stat tiles, which is
 the hero-metric template the craft floor refuses. No eyebrow labels above

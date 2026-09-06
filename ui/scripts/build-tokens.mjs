@@ -20,6 +20,83 @@ const read = (p) => JSON.parse(readFileSync(join(root, p), "utf8"));
 // ramp reads as an absence of a decision. Chroma still only ever carries state.
 const HUES = ["slate", "blue", "grass", "amber", "red"];
 
+// Radix's dark scales begin at the darkest colour a *surface* should be. A
+// platform frame needs two values below that: the ground the whole application
+// sits on, and the interior of a recessed well. Rather than pick two hex values
+// by eye, the ramp is continued downward by its own first step, measured in
+// OKLab lightness. The result stays on the scale's hue and stays reproducible,
+// so the contrast gate is checking a generated value and not a taste.
+const SRGB_TO_LMS = [
+  [0.4122214708, 0.5363325363, 0.0514459929],
+  [0.2119034982, 0.6806995451, 0.1073969566],
+  [0.0883024619, 0.2817188376, 0.6299787005],
+];
+const LMS_TO_LAB = [
+  [0.2104542553, 0.793617785, -0.0040720468],
+  [1.9779984951, -2.428592205, 0.4505937099],
+  [0.0259040371, 0.7827717662, -0.808675766],
+];
+
+const toLinear = (c) =>
+  c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+const toGamma = (c) =>
+  c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+const apply = (m, v) => m.map((row) => row.reduce((s, k, i) => s + k * v[i], 0));
+
+function hexToOklab(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) =>
+    toLinear(c / 255)
+  );
+  return apply(
+    LMS_TO_LAB,
+    apply(SRGB_TO_LMS, rgb).map((c) => Math.cbrt(c))
+  );
+}
+
+function oklabToHex([L, a, b]) {
+  const lms = [
+    L + 0.3963377774 * a + 0.2158037573 * b,
+    L - 0.1055613458 * a - 0.0638541728 * b,
+    L - 0.0894841775 * a - 1.291485548 * b,
+  ].map((c) => c ** 3);
+  const rgb = apply(
+    [
+      [4.0767416621, -3.3077115913, 0.2309699292],
+      [-1.2684380046, 2.6097574011, -0.3413193965],
+      [-0.0041960863, -0.7034186147, 1.707614701],
+    ],
+    lms
+  );
+  return (
+    "#" +
+    rgb
+      .map((c) => Math.round(Math.min(1, Math.max(0, toGamma(c))) * 255))
+      .map((c) => c.toString(16).padStart(2, "0"))
+      .join("")
+  );
+}
+
+// The two steps below step 1, as multiples of the scale's own first interval.
+// Step 0 is the ground; step 00 is the floor of a well, and is deep enough to
+// read as a hole rather than as another panel.
+const BELOW = { 0: 1.0, "00": 1.85 };
+
+function extendDownward(scale) {
+  const one = hexToOklab(scale["1"].$value);
+  const two = hexToOklab(scale["2"].$value);
+  const interval = two[0] - one[0];
+  for (const [name, multiple] of Object.entries(BELOW)) {
+    scale[name] = {
+      $value: oklabToHex([
+        Math.max(0, one[0] - interval * multiple),
+        one[1],
+        one[2],
+      ]),
+    };
+  }
+}
+
 function generateColorPrimitives() {
   const out = {
     $description:
@@ -37,6 +114,16 @@ function generateColorPrimitives() {
       for (const [step, value] of Object.entries(scale)) {
         out.color[name][step.replace(/^[a-zA-Z]+/, "")] = { $value: value };
       }
+      if (variant === "Dark") extendDownward(out.color[name]);
+    }
+  }
+  // White over anything is the only way to draw the highlight that makes an
+  // edge read as raised. The black alphas are its opposite, for the light
+  // theme, where the same edge is drawn as a shadow rather than as a light.
+  for (const name of ["whiteA", "blackA"]) {
+    out.color[name] = {};
+    for (const [step, value] of Object.entries(radix[name])) {
+      out.color[name][step.replace(/^[a-zA-Z]+/, "")] = { $value: value };
     }
   }
   writeFileSync(
@@ -195,6 +282,21 @@ theme.push("  --spacing-chrome: var(--layout-chrome-height);");
 theme.push("  --spacing-palette-top: var(--layout-palette-top);");
 theme.push("  --spacing-bar-value: var(--layout-bar-value);");
 theme.push("  --spacing-target: var(--target-min);");
+// The frame's fixed band heights and the inspector's width, so a component
+// writes `h-bar` and `w-inspector` and never a measurement.
+for (const role of [
+  "bar-height",
+  "status-height",
+  "chart-height",
+  "facet-height",
+  "row-height",
+  "timeline-height",
+]) {
+  theme.push(`  --spacing-${role.replace("-height", "")}: var(--layout-${role});`);
+}
+theme.push("  --container-inspector: var(--layout-inspector-width);");
+theme.push("  --container-table: var(--layout-table-min);");
+theme.push("  --container-table-narrow: var(--layout-table-min-narrow);");
 theme.push("  --container-bar-label: var(--layout-bar-label);");
 theme.push("");
 // A breakpoint is emitted as its literal value, not as a var() reference.

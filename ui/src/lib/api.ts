@@ -6,7 +6,12 @@
  * decide what to show instead rather than rendering the word "undefined".
  */
 import { useEffect, useState } from "react";
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery,
+  type UseInfiniteQueryResult,
+  type UseQueryResult,
+} from "@tanstack/react-query";
 import type { AgentDeclaration, Outcome, RegionDeclaration, RunEvent } from "./events";
 
 export interface Run {
@@ -160,20 +165,131 @@ export interface RunFilters {
   outcome?: string;
   agent?: string;
   search?: string;
+  unfinished?: boolean;
+  /** The half open interval a chart bar selects. */
+  since?: string;
+  until?: string;
   limit?: number;
   offset?: number;
 }
 
-export function useRuns(
+/** One interval of the index chart. Absent intervals arrive as zeroes. */
+export interface Bucket {
+  at: string;
+  open: number;
+  settled: number;
+  aborted: number;
+  expired: number;
+}
+
+export interface Histogram {
+  step_seconds: number;
+  from: string;
+  to: string;
+  buckets: Bucket[];
+}
+
+/**
+ * How many runs each choice would leave.
+ *
+ * Taken with every filter applied except the one being counted, so a count
+ * answers "what is over there" rather than "what is already selected".
+ */
+export interface Facets {
+  total: number;
+  open: number;
+  settled: number;
+  aborted: number;
+  expired: number;
+  unfinished: number;
+  refusals: number;
+  conflicts: number;
+  failed: number;
+  writes: number;
+  agents: { name: string; runs: number }[];
+}
+
+export interface Window {
+  step: number;
+  buckets: number;
+}
+
+export function useHistogram(
+  window: Window,
   filters: RunFilters
-): UseQueryResult<{ runs: Run[]; total: number; limit: number; offset: number }, ApiError> {
+): UseQueryResult<Histogram, ApiError> {
   return useQuery({
-    queryKey: ["runs", filters],
+    queryKey: ["histogram", window, filters],
     queryFn: () =>
-      get<{ runs: Run[]; total: number; limit: number; offset: number }>(
-        `/runs${search({ ...filters })}`
+      get<Histogram>(
+        `/histogram${search({
+          step: window.step,
+          buckets: window.buckets,
+          agent: filters.agent,
+          search: filters.search,
+        })}`
       ),
     refetchInterval: LIVE,
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function useFacets(filters: RunFilters): UseQueryResult<Facets, ApiError> {
+  return useQuery({
+    queryKey: ["facets", filters.agent, filters.search, filters.since, filters.until],
+    queryFn: () =>
+      get<Facets>(
+        `/facets${search({
+          agent: filters.agent,
+          search: filters.search,
+          since: filters.since,
+          until: filters.until,
+        })}`
+      ),
+    refetchInterval: LIVE,
+    placeholderData: (previous) => previous,
+  });
+}
+
+/** How many rows one request carries. The table virtualises, so this is about
+ *  how often it goes back to the server and not about what it can draw. */
+const PAGE = 200;
+
+export interface RunPage {
+  runs: Run[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+/**
+ * The table's rows, a page at a time.
+ *
+ * A project holds thousands of runs, so the list is never fetched whole. The
+ * table asks for the next page when the reader nears the end of what it has,
+ * which is the only reason the count of loaded rows and the total differ.
+ */
+export function useRunPages(
+  filters: RunFilters
+): UseInfiniteQueryResult<{ pages: RunPage[]; pageParams: number[] }, ApiError> {
+  return useInfiniteQuery({
+    queryKey: ["run-pages", filters],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      get<RunPage>(
+        `/runs${search({
+          ...filters,
+          unfinished: filters.unfinished ? 1 : undefined,
+          limit: PAGE,
+          offset: pageParam as number,
+        })}`
+      ),
+    getNextPageParam: (last, all) => {
+      const loaded = all.reduce((sum, page) => sum + page.runs.length, 0);
+      return loaded < last.total ? loaded : undefined;
+    },
+    refetchInterval: LIVE,
+    placeholderData: (previous) => previous,
   });
 }
 

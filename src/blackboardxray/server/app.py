@@ -14,6 +14,7 @@ a server and a separate static host.
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +39,15 @@ DEFAULT_LIMIT = 50
 MAX_LIMIT = 1000
 DEFAULT_EVENT_LIMIT = 500
 MAX_EVENT_LIMIT = 5000
+
+#: The shape of the histogram the index draws when the caller names none: one
+#: bar a minute for the last hour. The ceiling on the bucket count is what the
+#: chart can draw as separate bars at a plausible width, not what the database
+#: can group; asking for more returns bars an operator cannot tell apart.
+DEFAULT_STEP = 60.0
+MAX_STEP = 86_400.0
+DEFAULT_BUCKETS = 60
+MAX_BUCKETS = 240
 
 _WEB = Path(__file__).with_name("web")
 
@@ -168,6 +178,38 @@ def build(settings: Settings, database: Database | None = None) -> FastAPI:
     def overview(project: Project = Depends(reading)) -> dict[str, Any]:
         return {"project": project.slug, **store.overview(project.id)}
 
+    @app.get("/api/v1/histogram")
+    def histogram(
+        project: Project = Depends(reading),
+        step: float = Query(default=DEFAULT_STEP, ge=1.0, le=MAX_STEP),
+        buckets: int = Query(default=DEFAULT_BUCKETS, ge=2, le=MAX_BUCKETS),
+        outcome: str | None = Query(default=None),
+        agent: str | None = Query(default=None),
+        search: str | None = Query(default=None),
+        unfinished: bool = Query(default=False),
+    ) -> dict[str, Any]:
+        return store.histogram(
+            project.id,
+            step_seconds=step,
+            buckets=buckets,
+            outcome=outcome,
+            agent=agent,
+            search=search,
+            unfinished=unfinished,
+        )
+
+    @app.get("/api/v1/facets")
+    def facets(
+        project: Project = Depends(reading),
+        agent: str | None = Query(default=None),
+        search: str | None = Query(default=None),
+        since: datetime | None = Query(default=None),
+        until: datetime | None = Query(default=None),
+    ) -> dict[str, Any]:
+        return store.facets(
+            project.id, agent=agent, search=search, since=since, until=until
+        )
+
     @app.get("/api/v1/runs")
     def runs(
         project: Project = Depends(reading),
@@ -176,6 +218,9 @@ def build(settings: Settings, database: Database | None = None) -> FastAPI:
         outcome: str | None = Query(default=None),
         agent: str | None = Query(default=None),
         search: str | None = Query(default=None),
+        unfinished: bool = Query(default=False),
+        since: datetime | None = Query(default=None),
+        until: datetime | None = Query(default=None),
     ) -> dict[str, Any]:
         found = store.list_runs(
             project.id,
@@ -184,11 +229,20 @@ def build(settings: Settings, database: Database | None = None) -> FastAPI:
             outcome=outcome,
             agent=agent,
             search=search,
+            unfinished=unfinished,
+            since=since,
+            until=until,
         )
         return {
             "runs": found,
             "total": store.count_runs(
-                project.id, outcome=outcome, agent=agent, search=search
+                project.id,
+                outcome=outcome,
+                agent=agent,
+                search=search,
+                unfinished=unfinished,
+                since=since,
+                until=until,
             ),
             "limit": limit,
             "offset": offset,

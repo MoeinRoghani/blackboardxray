@@ -83,52 +83,52 @@ export type RunEvent =
   | (EventBase & {
       kind: "write.admitted" | "premise.set";
       body: {
-        version: number | null;
-        repeated: boolean;
-        content: Carried;
-        idempotency_key: string | null;
+        version?: number | null;
+        repeated?: boolean;
+        content?: Carried;
+        idempotency_key?: string | null;
       };
     })
   | (EventBase & {
       kind: "write.refused";
       body: {
-        cause: string;
-        reason: string;
-        content: Carried;
-        premise: boolean;
+        cause?: string;
+        reason?: string;
+        content?: Carried;
+        premise?: boolean;
       };
     })
   | (EventBase & {
       kind: "write.conflicted";
       body: {
-        expected_version: number | null;
-        current_version: number;
-        content: Carried;
+        expected_version?: number | null;
+        current_version?: number;
+        content?: Carried;
       };
     })
   | (EventBase & {
       kind: "notification.dispatched";
       body: {
-        notification_id: number;
-        from_sequence: number;
-        to_sequence: number;
-        regions: string[];
+        notification_id?: number;
+        from_sequence?: number;
+        to_sequence?: number;
+        regions?: string[];
       };
     })
   | (EventBase & {
       kind: "notification.acknowledged";
-      body: { notification_id: number };
+      body: { notification_id?: number };
     })
   | (EventBase & {
       kind: "notification.failed";
-      body: { notification_id: number; error: string; detail: string };
+      body: { notification_id?: number; error?: string; detail?: string };
     })
   | (EventBase & {
       kind: "run.closed";
       body: {
-        outcome: Outcome;
-        reason: string | null;
-        unfinished: string[];
+        outcome?: Outcome;
+        reason?: string | null;
+        unfinished?: string[];
       };
     });
 
@@ -164,18 +164,19 @@ export const KIND_LABEL: Record<EventKind, string> = {
  * Only the kinds that carry a problem get a hue. Everything ordinary is
  * neutral, so a coloured row on the screen always means something.
  */
-export type Tone = "neutral" | "settled" | "expired" | "aborted" | "open";
+export type Tone = "neutral" | "live" | "ok" | "warn" | "bad";
 
 export const KIND_TONE: Record<EventKind, Tone> = {
-  "run.opened": "open",
+  "run.opened": "neutral",
   "agent.registered": "neutral",
   "write.admitted": "neutral",
-  "write.refused": "expired",
-  "write.conflicted": "expired",
+  "write.refused": "warn",
+  "write.conflicted": "warn",
   "premise.set": "neutral",
   "notification.dispatched": "neutral",
   "notification.acknowledged": "neutral",
-  "notification.failed": "aborted",
+  // An agent that was never told is the one failure nothing else reports.
+  "notification.failed": "bad",
   "run.closed": "neutral",
 };
 
@@ -185,8 +186,33 @@ export const OUTCOME_LABEL: Record<Outcome, string> = {
   aborted: "Aborted",
 };
 
-export const OUTCOME_TONE: Record<Outcome, Tone> = {
-  settled: "settled",
-  wall_clock_expired: "expired",
-  aborted: "aborted",
+/**
+ * The same three outcomes, in a column.
+ *
+ * "Wall clock expired" is the library's own name for it and is what a run's
+ * own header says. In a dense table it is three words in a column sized for
+ * one, so it overran into the board beside it. A column states which of four
+ * things happened; the full phrase is one line above it, in the panel.
+ */
+export const OUTCOME_SHORT: Record<Outcome, string> = {
+  settled: "Settled",
+  wall_clock_expired: "Expired",
+  aborted: "Aborted",
 };
+
+export const OUTCOME_TONE: Record<Outcome, Tone> = {
+  settled: "ok",
+  wall_clock_expired: "warn",
+  aborted: "bad",
+};
+
+/**
+ * How a run reads right now.
+ *
+ * An open run is live; a closed one takes its outcome's tone. Three components
+ * were each deciding this with their own nested conditional, which is three
+ * places for the same rule to drift.
+ */
+export function runTone(outcome: Outcome | null): Tone {
+  return outcome === null ? "live" : OUTCOME_TONE[outcome];
+}

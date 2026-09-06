@@ -1,6 +1,39 @@
 {
-  "$description": "Stage 8. Named by job. Four planes, not two: the sidebar is its own neutral layer, which is what an Operate surface owes a navigation column. The planes are three Radix steps apart rather than one, because at one step a dark theme is a single flat sheet whose only boundaries are hairlines.",
+  "$description": "Stage 8. Named by job. The neutrals are a depth ladder, not a set of shades: void is the ground the frame sits on, well is a recess cut into it, chrome and field are the fixed bands, and plane is where content lives. A component picks the rung it is on, so the whole frame moves by editing this file. Chroma is state and nothing else.",
   "color": {
+    "void": {
+      "$value": "{slateDark.00}"
+    },
+    "well": {
+      "$value": "{slateDark.0}"
+    },
+    "recess": {
+      "$value": "{blackA.11}"
+    },
+    "chrome": {
+      "$value": "{slateDark.1}"
+    },
+    "field": {
+      "$value": "{slateDark.1}"
+    },
+    "plane": {
+      "$value": "{slateDark.2}"
+    },
+    "plane-2": {
+      "$value": "{slateDark.3}"
+    },
+    "rule": {
+      "$value": "{slateDarkA.7}"
+    },
+    "sheen": {
+      "$value": "{whiteA.2}"
+    },
+    "ok-edge": {
+      "$value": "{grassDark.7}"
+    },
+    "warn-edge": {
+      "$value": "{amberDark.7}"
+    },
     "sidebar": {
       "$value": "{slateDark.1}"
     },

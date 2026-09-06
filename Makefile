@@ -6,7 +6,7 @@ UV ?= uv
 PY ?= .venv/bin/python
 NPM ?= npm --prefix ui
 
-.PHONY: setup lint typecheck test ui verify serve seed clean
+.PHONY: setup lint typecheck test ui verify serve seed backfill clean
 
 setup:                     ## Install both halves and the interface's toolchain
 	$(UV) venv --python 3.12
@@ -37,6 +37,9 @@ serve:                     ## Run the platform
 
 seed:                      ## Put real runs in front of the interface
 	.venv/bin/python examples/seed.py
+
+backfill:                  ## A day of fabricated traffic, so the interface has volume
+	.venv/bin/python examples/backfill.py
 
 clean:
 	rm -rf src/blackboardxray/server/web ui/node_modules .pytest_cache .mypy_cache

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -27,6 +28,10 @@ def token(database: Any) -> str:
 
 def an_event(board_id: str, kind: str = EventKind.WRITE_ADMITTED, **rest: Any) -> dict:
     return Event(board_id=board_id, kind=kind, **rest).to_json()
+
+
+def sum_of(bucket: dict) -> int:
+    return bucket["open"] + bucket["settled"] + bucket["aborted"] + bucket["expired"]
 
 
 def send(client: Any, token: str, events: list[dict]) -> Any:
@@ -268,6 +273,128 @@ class TestReading:
         health = client.get("/api/v1/health").json()
         assert health["status"] == "ok"
         assert health["kinds"] == list(EventKind.ALL)
+
+
+class TestTheIndex:
+    """The two aggregates the index is built on, and the range it selects."""
+
+    def _a_day(self, client, token) -> None:
+        """Opens four runs, one an hour apart, each ending differently."""
+        now = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
+        for hours, outcome in (
+            (4, "settled"),
+            (3, "settled"),
+            (2, "aborted"),
+            (1, None),
+        ):
+            opened = now - timedelta(hours=hours)
+            board = f"board-{hours}"
+            events = [
+                an_event(board, EventKind.RUN_OPENED, at=opened),
+                an_event(board, sequence=1, agent="ocp", region="signals", at=opened),
+            ]
+            if outcome is not None:
+                events.append(
+                    an_event(
+                        board,
+                        EventKind.RUN_CLOSED,
+                        at=opened + timedelta(seconds=30),
+                        body={"outcome": outcome, "unfinished": ["changelog"]},
+                    )
+                )
+            send(client, token, events)
+
+    def test_an_interval_with_no_run_arrives_as_a_zero(self, client, token) -> None:
+        # The chart is continuous. A missing bucket and a quiet one look the
+        # same once they are drawn side by side, and the quiet one is the
+        # reading an operator most needs.
+        self._a_day(client, token)
+        answer = client.get("/api/v1/histogram?step=3600&buckets=6").json()
+        assert len(answer["buckets"]) == 6
+        assert all(
+            {"open", "settled", "aborted", "expired"} <= set(bucket)
+            for bucket in answer["buckets"]
+        )
+        assert any(sum_of(bucket) == 0 for bucket in answer["buckets"])
+
+    def test_a_run_is_counted_in_the_interval_it_opened_in(self, client, token) -> None:
+        self._a_day(client, token)
+        answer = client.get("/api/v1/histogram?step=3600&buckets=6").json()
+        assert sum(sum_of(bucket) for bucket in answer["buckets"]) == 4
+        assert sum(bucket["settled"] for bucket in answer["buckets"]) == 2
+        assert sum(bucket["aborted"] for bucket in answer["buckets"]) == 1
+        assert sum(bucket["open"] for bucket in answer["buckets"]) == 1
+
+    def test_the_bars_do_not_slide_between_two_reads(self, client, token) -> None:
+        # The grid is anchored to the epoch and not to now, so a chart redrawn
+        # a second later has the same boundaries.
+        self._a_day(client, token)
+        first = client.get("/api/v1/histogram?step=3600&buckets=6").json()
+        second = client.get("/api/v1/histogram?step=3600&buckets=6").json()
+        assert [b["at"] for b in first["buckets"]] == [
+            b["at"] for b in second["buckets"]
+        ]
+
+    def test_a_facet_count_ignores_its_own_filter(self, client, token) -> None:
+        # A count taken with its own filter applied reads one for the choice
+        # already made and zero for every other, which tells nobody where to go.
+        self._a_day(client, token)
+        facets = client.get("/api/v1/facets").json()
+        assert facets["total"] == 4
+        assert facets["settled"] == 2
+        assert facets["aborted"] == 1
+        assert facets["open"] == 1
+        assert facets["unfinished"] == 3
+        assert [one["name"] for one in facets["agents"]] == ["ocp"]
+
+    def test_a_facet_count_honours_every_other_filter(self, client, token) -> None:
+        self._a_day(client, token)
+        assert client.get("/api/v1/facets?agent=ocp").json()["total"] == 4
+        assert client.get("/api/v1/facets?agent=netops").json()["total"] == 0
+        assert client.get("/api/v1/facets?search=board-2").json()["total"] == 1
+
+    def test_a_range_is_half_open(self, client, token) -> None:
+        # A run opened exactly on a bar's right edge belongs to the next bar.
+        # Closing both ends would count it in two.
+        self._a_day(client, token)
+        buckets = client.get("/api/v1/histogram?step=3600&buckets=6").json()["buckets"]
+        busy = next(b for b in buckets if sum_of(b) > 0)
+        edge = datetime.fromisoformat(busy["at"])
+        inside = client.get(
+            f"/api/v1/runs?since={edge.isoformat()}"
+            f"&until={(edge + timedelta(hours=1)).isoformat()}"
+        ).json()
+        after = client.get(
+            f"/api/v1/runs?since={(edge + timedelta(hours=1)).isoformat()}"
+            f"&until={(edge + timedelta(hours=2)).isoformat()}"
+        ).json()
+        assert inside["total"] == sum_of(busy)
+        assert not {r["board_id"] for r in inside["runs"]} & {
+            r["board_id"] for r in after["runs"]
+        }
+
+    def test_the_table_and_the_chart_agree_on_an_interval(self, client, token) -> None:
+        # Selecting a bar has to show the runs the bar counted. Two queries
+        # that disagree would make the chart a decoration.
+        self._a_day(client, token)
+        buckets = client.get("/api/v1/histogram?step=3600&buckets=6").json()["buckets"]
+        for bucket in buckets:
+            since = datetime.fromisoformat(bucket["at"])
+            listed = client.get(
+                f"/api/v1/runs?since={since.isoformat()}"
+                f"&until={(since + timedelta(hours=1)).isoformat()}"
+            ).json()
+            assert listed["total"] == sum_of(bucket)
+
+    def test_unfinished_narrows_the_list(self, client, token) -> None:
+        self._a_day(client, token)
+        assert client.get("/api/v1/runs?unfinished=true").json()["total"] == 3
+        assert client.get("/api/v1/runs").json()["total"] == 4
+
+    def test_a_bucket_count_past_what_a_chart_can_draw_is_refused(
+        self, client, token
+    ) -> None:
+        assert client.get("/api/v1/histogram?buckets=1000").status_code == 422
 
 
 class TestProjects:

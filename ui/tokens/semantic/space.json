@@ -33,6 +33,36 @@
     },
     "bar-value": {
       "$value": "64px"
+    },
+    "bar-height": {
+      "$value": "44px"
+    },
+    "status-height": {
+      "$value": "26px"
+    },
+    "chart-height": {
+      "$value": "108px"
+    },
+    "facet-height": {
+      "$value": "40px"
+    },
+    "row-height": {
+      "$value": "32px"
+    },
+    "inspector-width": {
+      "$value": "420px"
+    },
+    "timeline-height": {
+      "$value": "132px"
+    },
+    "table-min": {
+      "$value": "56rem"
+    },
+    "table-min-narrow": {
+      "$value": "46rem"
+    },
+    "measure": {
+      "$value": "58ch"
     }
   },
   "layout-compact": {
@@ -91,11 +121,40 @@
     },
     "scrollbar-inset": {
       "$value": "{stroke.thick}"
+    },
+    "recess-near": {
+      "$value": "{recess.near}"
+    },
+    "recess-spread": {
+      "$value": "{recess.spread}"
     }
   },
   "target": {
     "min": {
       "$value": "24px"
+    }
+  },
+  "column": {
+    "count": {
+      "$value": "4rem"
+    },
+    "measure": {
+      "$value": "5.5rem"
+    },
+    "word": {
+      "$value": "7rem"
+    },
+    "name": {
+      "$value": "8rem"
+    },
+    "phrase": {
+      "$value": "11rem"
+    },
+    "min-name": {
+      "$value": "9rem"
+    },
+    "max-list": {
+      "$value": "14rem"
     }
   }
 }

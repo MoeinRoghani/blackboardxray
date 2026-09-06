@@ -67,6 +67,24 @@ LLM-tracing nouns and none of them are used here.
 | V1 | Seed a real run through the SDK against a real Postgres | done |
 | V2 | Screenshot both themes, run the Impeccable detector, fix in one batch | done |
 | V3 | Tests, `make verify`, docker compose, README, governance | done |
+| W1 | The two aggregates the index needs: a continuous histogram and facet counts, with a half open time range threaded through every run query | done |
+| W2 | The frame: a depth ladder of planes, bands welded to both edges, wells for the recesses, and the OKLab extension that gives a dark theme two rungs below Radix step 1 | done |
+| W3 | Boards: the chart over the record, the facet strip that replaces the overview, the virtualised table, and the inspector beside it | done |
+| W4 | A board: graph, events and contents, over one clock | done |
+| W5 | Settings as a route, agents as a table, the sheet stack removed | done |
+| W6 | The verification pass: detector, keyboard order, both themes, a phone, and a fixture with a day of traffic in it | done |
+
+## What the interface is
+
+Three destinations and one detail. The index is a query rather than a browse,
+because a project opens runs continuously and holds thousands of them: a chart
+of runs opened per interval, a facet strip that narrows the list and carries
+the counts an overview would have, and a dense virtualised table under both.
+Selecting a board opens a panel beside it. The graph is a reading of one run
+and lives inside that run, never above the project.
+
+Every filter, the window, the selection and the chosen view are search
+parameters, so any view is a link.
 
 ## Rules for every step
 

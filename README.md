@@ -76,6 +76,40 @@ A contribution's content is recorded, truncated past 4kB. A deployment whose
 contributions may not leave the process passes `content_limit=0`, which records
 the size and the shape and none of the content.
 
+## What the interface shows
+
+`blackboardxray serve` serves the interface at the same address as the API.
+
+**Boards**, at `/`, is a chart of runs opened per interval over the record of
+them. Clicking a bar narrows the table to the runs that bar counted; the facet
+strip between them narrows by outcome, by agent, or to the runs an agent did
+not finish, and each facet carries the count it would leave. Selecting a board
+opens a panel beside the list with what happened inside it: which agent was
+refused, on which region, and what the rule said.
+
+**A board**, at `/boards/<board_id>`, reads three ways. *Graph* draws what
+wrote to what and who was told, with a broken edge where a notification never
+arrived. *Events* is the same run as a table and is the record. *Board* is what
+was actually written. The run's own clock stays along the bottom of all three.
+
+Every filter, the time window, the selected board and the chosen view are in
+the address, so a view is a link.
+
+Reading is not authenticated. Ingestion needs a key; put the interface behind
+whatever already fronts your internal tools.
+
+## Development
+
+```
+make setup
+make verify
+```
+
+`examples/seed.py` runs real models through the real client. `examples/
+backfill.py` posts a day of fabricated traffic over the ingest API, so the
+interface can be looked at at the volume it is for; it is a fixture and nothing
+in a deployment runs it.
+
 ## License
 
 Apache-2.0.
