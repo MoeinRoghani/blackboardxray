@@ -287,8 +287,21 @@ class Xray:
     # What the wrappers call.
 
     def _observe_agent(self, board_id: str, agent: Agent) -> Agent:
-        """Returns the declaration with its callback wrapped."""
+        """Returns the declaration with its callback wrapped.
+
+        An agent declares a callback or an address, and `blackboardx` requires
+        one of the two. Where it is an address the agent runs as its own
+        service and the control component reaches it over HTTP, so there is no
+        function in this process to wrap. It is returned untouched and the
+        observation happens on its own side, through `Xray.agent_board`.
+
+        Recording a dispatch here for an agent this process never calls would
+        be a line in the timeline saying something happened here that happened
+        somewhere else.
+        """
         inner = agent.notify
+        if inner is None:
+            return agent
 
         def notify(notification: Notification) -> None:
             self._sender.record(

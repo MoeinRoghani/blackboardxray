@@ -457,3 +457,33 @@ def test_a_contribution_past_the_limit_is_truncated_and_says_so() -> None:
     carried = collected.of(EventKind.WRITE_ADMITTED)[0]["body"]["content"]
     assert carried["truncated"] is True
     assert len(carried["preview"]) == 64
+
+
+class TestAnAgentReachedAtAnAddress:
+    """An agent deployed as its own service names an address, not a callback.
+
+    `blackboardx` requires one or the other. Where it is an address there is no
+    function in this process to wrap, and the observation happens on the
+    agent's own side through `Xray.agent_board`.
+    """
+
+    def test_it_is_left_alone(self, xray: Xray) -> None:
+        declared = Agent(
+            name="ocp", address="https://ocp.internal/notify", writes_to=["signals"]
+        )
+        assert declared.notify is None
+
+        observed = xray._observe_agent("board-1", declared)
+        assert observed is declared
+
+    def test_no_dispatch_is_recorded_here_for_it(
+        self, xray: Xray, collected: Collected
+    ) -> None:
+        # Recording a dispatch in this process for an agent this process never
+        # calls would be a line in the timeline saying something happened here
+        # that happened somewhere else.
+        xray._observe_agent(
+            "board-1", Agent(name="ocp", address="https://ocp.internal/notify")
+        )
+        xray.flush()
+        assert EventKind.NOTIFICATION_DISPATCHED not in collected.kinds()

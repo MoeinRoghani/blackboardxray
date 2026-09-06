@@ -44,7 +44,9 @@ Repository = "https://github.com/MoeinRoghani/blackboardxray"
 [dependency-groups]
 dev = [
     "blackboardxray[server,httpx]",
-    "blackboardx>=0.11.1",
+    # 0.14 is where an agent gained an address as an alternative to a callback,
+    # which this has to handle rather than assume away.
+    "blackboardx>=0.14.0",
     "mypy>=1.14",
     "pytest>=8.3",
     "ruff>=0.9",

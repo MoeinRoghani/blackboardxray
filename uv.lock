@@ -145,7 +145,7 @@ provides-extras = ["server", "httpx"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "blackboardx", specifier = ">=0.11.1" },
+    { name = "blackboardx", specifier = ">=0.14.0" },
     { name = "blackboardxray", extras = ["server", "httpx"] },
     { name = "mypy", specifier = ">=1.14" },
     { name = "pytest", specifier = ">=8.3" },
