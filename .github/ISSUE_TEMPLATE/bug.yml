@@ -1,0 +1,80 @@
+name: Bug report
+description: Something behaves differently from what it says it does
+labels: ["type:fix"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report. The two fields that matter most are what you
+        expected and what happened, in that order.
+
+        If this is a security vulnerability, do not open an issue. `SECURITY.md`
+        says where to send it privately.
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: What should have happened, and what made you expect it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened instead
+      description: Include the exact error or the exact wrong value, not a paraphrase.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to see it
+      description: >
+        The shortest path from a fresh install to the wrong behaviour. A failing
+        test is the best possible version of this.
+      placeholder: |
+        1. docker compose up -d
+        2. Set up, then ...
+        3. The runs list shows ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - The server or the API
+        - The interface
+        - The client that sends events
+        - Installing or upgrading
+        - Somewhere else, or not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: >
+        The image tag, or `pip show blackboardxray`, or the commit you are on.
+      placeholder: "0.1.0, or ghcr.io/moeinroghani/blackboardxray:1"
+    validations:
+      required: true
+
+  - type: input
+    id: postgres
+    attributes:
+      label: Postgres version
+      placeholder: "17.2"
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: >
+        `docker compose logs xray`, or the server's output. Take the request
+        identifier out of the failing response if you have it.
+      render: text

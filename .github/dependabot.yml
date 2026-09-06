@@ -1,0 +1,44 @@
+# Four ecosystems, because this project has four. The interface has its own
+# dependency tree and would otherwise never be updated, and the base images in
+# the Dockerfile age the same way a package does.
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "build"
+
+  - package-ecosystem: "npm"
+    directory: "/ui"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "build"
+    groups:
+      # One pull request for the interface's development tooling rather than
+      # one per package. They move together and are checked by the same build.
+      interface-tooling:
+        patterns:
+          - "@types/*"
+          - "typescript"
+          - "vite"
+          - "@vitejs/*"
+          - "tailwindcss"
+          - "@tailwindcss/*"
+          - "playwright"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "build"

@@ -44,8 +44,8 @@ LLM-tracing nouns and none of them are used here.
 
 | # | Step | Status |
 | --- | --- | --- |
-| P1 | `PRODUCT.md`, the durable product context Impeccable reads | done |
-| P2 | Stage 2 object model and navigation map, `design/objects.md` | done |
+| P1 | `docs/product.md`, the durable product context Impeccable reads | done |
+| P2 | Stage 2 object model and navigation map, `docs/docs/design/objects.md` | done |
 | B1 | The event vocabulary: one frozen dataclass per event, tolerant JSON | done |
 | B2 | Postgres schema: projects, keys, runs, events, and the read views | done |
 | B3 | Ingestion: bearer token, batch, idempotent by event id | done |
@@ -54,7 +54,7 @@ LLM-tracing nouns and none of them are used here.
 | S1 | The client: bounded queue, background worker, batch, retry, never raise | done |
 | S2 | `Xray.create_model`, wrapping control, agents and the outcome | done |
 | S3 | `Xray.as_agent` and the remote client wrapper | done |
-| D1 | Stage 1 brand stance, `design/brand.md` | done |
+| D1 | Stage 1 brand stance, `docs/docs/design/brand.md` | done |
 | D2 | Stages 3, 4, 6, 7: primitive tokens | done |
 | D3 | Stage 5 color, on Radix scales, contrast verified | done |
 | D4 | Stage 8 assembly: semantic tier, both themes, the build | done |
@@ -217,6 +217,54 @@ The suite needs a database and skips every test that touches one without it:
 createdb blackboardxray_test
 BLACKBOARDXRAY_TEST_DSN=postgresql://localhost/blackboardxray_test make verify
 ```
+
+## Becoming a repository
+
+The platform works. What is missing is everything that makes a stranger trust
+it enough to run it: no remote, no release, no way to report a vulnerability,
+no statement of what a contribution has to look like, and no automated check
+that a dependency has not gone bad.
+
+The standard is the one `blackboard` already holds itself to, because the same
+person maintains both and two repositories with different rules is two sets of
+rules to remember. What differs is what this project has and that one does not:
+a container image, an interface with its own toolchain, and a database.
+
+One rule carries over and is worth restating. **A pull request body carries no
+parenthesis.** The squash merge writes the body into the commit message,
+release-please parses that message, and a parenthesis defeats its parser
+silently: the commit is dropped from the release notes while every check stays
+green.
+
+## Steps to a repository
+
+| # | Step | Status |
+| --- | --- | --- |
+| G1 | The branch is `main`, the remote is set, and the history is pushed. Every workflow triggers on `main` and none of them has ever run | |
+| G2 | `uv.lock`, so CI and a contributor install the same versions rather than whatever resolved that morning | done |
+| G3 | `CONTRIBUTING.md`: the change flow as it actually runs, the parenthesis rule, and how to run a database backed test | done |
+| G4 | `SECURITY.md`: what is in scope, where to send a report privately, and what this platform deliberately does not defend against | done |
+| G5 | `CODE_OF_CONDUCT.md`, Contributor Covenant, with a real address on it | done |
+| G6 | Issue templates for a bug and a feature, and a config that points a question at Discussions rather than at the issue tracker | done |
+| G7 | A pull request template that asks for the three things a review needs and refuses the parenthesis before CI does | done |
+| G8 | Dependabot over four ecosystems: uv, npm, github-actions and docker. The interface has its own tree and is otherwise never updated | done |
+| G9 | `title-lint`: conventional titles, no parenthesis in the body, and a breaking title carrying its migration | done |
+| G10 | CodeQL over Python and TypeScript, dependency review on every pull request, `pip-audit` and `npm audit` in CI, and gitleaks | done |
+| G11 | `.editorconfig`, `.gitattributes` marking generated files, and `.pre-commit-config.yaml` running the same gates CI runs | done |
+| G12 | Repository settings and labels, applied with `gh` rather than clicked | |
+| G13 | The README a stranger reads: what it is, what it looks like, and running it in three lines | done |
+| G14 | `docs/`: architecture, the API surface, the security model, and an ADR for each decision already made | done |
+| G15 | Build provenance on the image and a software bill of materials, so somebody can verify what they pulled | done |
+
+## Steps to a release
+
+| # | Step | Status |
+| --- | --- | --- |
+| X1 | CI green on `main`, including the compose job that has never run anywhere | |
+| X2 | The release pull request release-please opens, merged, tagging `0.1.0` | |
+| X3 | The image on GHCR, pulled and run from the registry rather than from a build | |
+| X4 | The client on PyPI by trusted publishing, installed from the index into a clean environment | |
+| X5 | The quickstart walked from a clone nobody has touched, against the published image | |
 
 ## Rules for every step
 

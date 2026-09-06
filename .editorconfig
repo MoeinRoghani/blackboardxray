@@ -1,0 +1,22 @@
+# One answer per file type, so an editor does not have to guess and a diff does
+# not carry somebody else's settings.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{js,jsx,ts,tsx,json,jsonc,css,html,yml,yaml,mjs}]
+indent_size = 2
+
+[*.md]
+# A trailing double space is a line break in Markdown, and trimming it changes
+# what the document says.
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab

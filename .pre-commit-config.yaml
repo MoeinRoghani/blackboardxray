@@ -1,0 +1,49 @@
+# The same gates CI runs, run before the commit rather than after the push.
+# Install with `pre-commit install` after `make setup`.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: cef0300fd0fc4d2a87a85fa2093c6b283ea36f4b # v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        exclude: \.md$
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=512]
+
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format --check src tests examples
+        language: system
+        pass_filenames: false
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check src tests examples
+        language: system
+        pass_filenames: false
+      - id: mypy
+        name: mypy
+        entry: uv run mypy src
+        language: system
+        pass_filenames: false
+      - id: raw-values
+        name: no raw values in the interface
+        entry: npm --prefix ui run check
+        language: system
+        pass_filenames: false
+        files: ^ui/
+      - id: contrast
+        name: every read pair clears its floor
+        entry: npm --prefix ui run contrast
+        language: system
+        pass_filenames: false
+        files: ^ui/
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e # v8.30.1
+    hooks:
+      - id: gitleaks

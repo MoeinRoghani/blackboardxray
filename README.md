@@ -1,8 +1,35 @@
 # blackboardxray
 
-Observability for [blackboard](https://github.com/MoeinRoghani/blackboardx) runs.
-One server, one database, one interface. An application reaches it by naming an
-endpoint and a token.
+**Self-hosted observability for [blackboardx](https://github.com/MoeinRoghani/blackboard)
+runs.** One server, one database, one interface. An application reaches it by
+naming an endpoint and a token, and nothing else about the application changes.
+
+[![CI](https://github.com/MoeinRoghani/blackboardxray/actions/workflows/ci.yml/badge.svg)](https://github.com/MoeinRoghani/blackboardxray/actions/workflows/ci.yml)
+[![security](https://github.com/MoeinRoghani/blackboardxray/actions/workflows/security.yml/badge.svg)](https://github.com/MoeinRoghani/blackboardxray/actions/workflows/security.yml)
+[![PyPI](https://img.shields.io/pypi/v/blackboardxray)](https://pypi.org/project/blackboardxray/)
+[![Python](https://img.shields.io/pypi/pyversions/blackboardxray)](https://pypi.org/project/blackboardxray/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
+A blackboard run is a set of agents writing to a shared board under an
+admission rule. When one goes wrong the board tells you what was written, and
+nothing tells you what the run *did* about it: who was notified, who
+acknowledged, what admission refused, or which delivery never arrived. This
+records that.
+
+**Two containers and nothing else.** No cache, no queue, no object store, and
+no secret for you to generate.
+
+## Contents
+
+- [Why it exists](#why-it-exists)
+- [Run it](#run-it)
+- [Observe a run](#observe-a-run)
+- [What is recorded](#what-is-recorded)
+- [Who can see what](#who-can-see-what)
+- [What the interface shows](#what-the-interface-shows)
+- [Development](#development)
+- [Self-hosting reference](docs/self-hosting.md)
+- [Security](SECURITY.md) and [Contributing](CONTRIBUTING.md)
 
 ## Why it exists
 
@@ -156,6 +183,25 @@ posts a day of fabricated traffic over the ingest API, so the interface can be
 looked at at the volume it is for; it is a fixture and nothing in a deployment
 runs it.
 
+## Documentation
+
+| | |
+| --- | --- |
+| [Self-hosting](docs/self-hosting.md) | Every environment variable, proxy headers, backup and restore, upgrading, and the volume ceiling |
+| [Architecture](docs/architecture.md) | The two halves, the wire between them, and what runs in the background |
+| [Decisions](docs/adr/) | Why one database, why sessions rather than tokens, why links rather than email |
+| [Security](SECURITY.md) | How credentials are stored, what is in scope, and what this deliberately does not defend against |
+| [Contributing](CONTRIBUTING.md) | The change flow, the gates, and the two rules about a pull request body |
+| [Design system](docs/design-system.md) | The token pipeline, the depth ladder, and why a screen may not set a value |
+| [Limits](docs/limits.md) | What the client does when the platform is down or slow |
+
+## Status
+
+Version 0.x. The public surface may still change, and a breaking change carries
+a `!` and a migration note in its release. The wire format between the client
+and the server is versioned separately and decodes tolerantly in both
+directions, so a client and a server from different releases work together.
+
 ## License
 
-Apache-2.0.
+Apache-2.0. See [LICENSE](LICENSE).

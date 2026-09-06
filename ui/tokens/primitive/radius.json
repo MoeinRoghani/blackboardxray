@@ -1,5 +1,5 @@
 {
-  "$description": "Stage 3. A fixed radius set. The rule that governs which is used where is in design/rules.md.",
+  "$description": "Stage 3. A fixed radius set. The rule that governs which is used where is in docs/design/rules.md.",
   "radius": {
     "$type": "dimension",
     "none": { "$value": "0px" },

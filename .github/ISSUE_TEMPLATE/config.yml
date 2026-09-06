@@ -1,0 +1,16 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question, or an idea you want to talk through
+    url: https://github.com/MoeinRoghani/blackboardxray/discussions
+    about: >
+      Discussions, rather than the issue tracker. An issue is a thing to be
+      done; a question is not, and it gets a better answer there.
+  - name: Security vulnerability
+    url: https://github.com/MoeinRoghani/blackboardxray/security/advisories/new
+    about: >
+      Report it privately. Please do not open an issue for a vulnerability.
+  - name: How to run this yourself
+    url: https://github.com/MoeinRoghani/blackboardxray/blob/main/docs/self-hosting.md
+    about: >
+      Every environment variable, the proxy headers that matter, backup,
+      upgrading, and what this deliberately does not do.

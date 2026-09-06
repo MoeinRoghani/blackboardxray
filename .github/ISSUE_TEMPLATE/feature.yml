@@ -1,0 +1,46 @@
+name: Feature request
+description: Something this should do and does not
+labels: ["type:feat"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The most useful requests describe a problem rather than a solution. What
+        you cannot currently find out about a run is more actionable than which
+        control you would like added.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you cannot do today
+      description: The situation you are in and what you end up doing instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: shape
+    attributes:
+      label: What would solve it
+      description: >
+        If you have a shape in mind, describe it. If you do not, say so; that is
+        a legitimate answer and often a better one.
+    validations:
+      required: true
+
+  - type: textarea
+    id: considered
+    attributes:
+      label: What you have already tried
+      description: >
+        Including whether an existing view nearly does it. Knowing what nearly
+        works says more than a blank field.
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Before you send this
+      options:
+        - label: >
+            I have read the end of `docs/self-hosting.md`, and this is not one of
+            the things the project has deliberately decided not to do.
+          required: true

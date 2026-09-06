@@ -18,3 +18,9 @@ src/blackboardxray/server/web/
 # Local to the working copy, never committed.
 LLM Build Prompts.txt
 Product Design Procedure.md
+
+# Working documents about how the product is made, not what it is. They stay in
+# the working copy and are not part of what somebody clones.
+LLM Build Prompts.txt
+Product Design Procedure.md
+.impeccable/
