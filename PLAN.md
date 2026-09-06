@@ -86,6 +86,70 @@ and lives inside that run, never above the project.
 Every filter, the window, the selection and the chosen view are search
 parameters, so any view is a link.
 
+## Becoming operational
+
+Everything above makes one thing observable. None of it makes the platform
+something a company can run: there are no people in it, reading is open to
+whoever reaches the port, a project is created by shelling into the container,
+and the schema has no way to gain a column.
+
+The model is Langfuse's. An organization owns projects, a person is a member of
+an organization with a role, an application authenticates with a key that
+belongs to one project, and a reader authenticates as themselves.
+
+Three deliberate departures.
+
+**One database, not four.** Langfuse needs Postgres, ClickHouse, Redis and
+object storage, because it stores LLM traces whose payloads are large and whose
+analytics are heavy. These events are small structured rows. Postgres is
+enough, and one stateful service is the difference between an install a team
+can operate and one they cannot. The ceiling that buys is documented rather
+than hidden.
+
+**No secret to configure.** Langfuse requires `NEXTAUTH_SECRET`, `SALT` and
+`ENCRYPTION_KEY`. Sessions here are opaque random identifiers stored hashed in
+the database rather than signed cookies, keys and invite tokens are stored
+hashed, and the platform holds no third party credential it would need to
+encrypt. So there is nothing to generate and nothing to lose.
+
+**No SMTP.** An invite is a one time link an admin copies and sends however
+they already talk to their colleagues. A password reset is the same. An install
+that needs a mail server before a second person can sign in is an install that
+does not get a second person.
+
+## Steps to operational
+
+| # | Step | Status |
+| --- | --- | --- |
+| M1 | A numbered migration runner: an advisory lock, one transaction per file, and a checksum that refuses a migration edited after it ran | done |
+| I1 | `users` and `sessions`, with scrypt hashing tagged by algorithm so the cost can be raised later without locking anyone out | |
+| I2 | Session lifecycle: opaque token hashed at rest, sliding expiry, revocation as a delete | |
+| I3 | The auth routes, the cookie, an origin check on every unsafe method, and a lockout that survives a restart | |
+| T1 | `organizations`, `memberships`, per project role overrides, `invites`, and a public identifier for every object a URL names | |
+| T2 | The migration that gives existing projects an organization to belong to | |
+| T3 | The role model, and `effective_role` where a project role beats an organization role | |
+| A1 | Every read authorized: a session, a membership, a role, and a 403 that says which | |
+| A2 | Keys gain revocation and a last used stamp that does not write on every request | |
+| A3 | The administration API: organizations, projects, keys, members, invites | |
+| O1 | First run. No users means one reachable page, which creates the owner, an organization, a project and the first key | |
+| O2 | Headless initialization from the environment, idempotent, for a compose file or a chart | |
+| O3 | Signup is invite only unless a deployment opens it | |
+| U7 | The unauthenticated shell: sign in, first run, accept an invite | |
+| U8 | The organization and project switcher, and the account menu | |
+| U9 | Project settings: keys created and shown once, revoked, and retention | |
+| U10 | Organization settings: members, roles, and invite links to copy | |
+| U11 | The account: name, password, and every session with a way to end it | |
+| U12 | Every existing surface scoped to the project in the address | |
+| P1 | Retention. A per project window, chunked deletes, one sweeper however many replicas | |
+| P2 | Ingest limits: per key rate, payload ceiling, and a 429 the client already knows how to obey | |
+| P3 | Liveness against readiness, graceful shutdown, and a request identifier through every log line | |
+| P4 | An audit trail of who changed what, because a role change nobody can attribute is a role change nobody can review | |
+| R1 | release-please, conventional titles, one place the version lives | |
+| R2 | A multi architecture image on every tag, and a compose file that runs the whole platform from a clone | |
+| R3 | The client on PyPI, published by the workflow rather than by a person | |
+| R4 | The documentation a stranger needs: quickstart, every environment variable, upgrading, backup and restore, the security model, and the volume ceiling | |
+| R5 | An upgrade test: raise a database written by the previous version and assert the record survived | |
+
 ## Rules for every step
 
 - No value is set on a screen. A screen needing one is a token gap, closed in the

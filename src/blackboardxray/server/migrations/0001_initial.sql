@@ -6,11 +6,6 @@
 -- board alone, so a board identifier that two deployments happen to share stays
 -- two runs rather than one.
 
-CREATE TABLE IF NOT EXISTS xray_schema_stamp (
-    id      INTEGER PRIMARY KEY CHECK (id = 1),
-    version INTEGER NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS xray_projects (
     id         BIGSERIAL PRIMARY KEY,
     slug       TEXT NOT NULL UNIQUE,
@@ -98,3 +93,9 @@ CREATE INDEX IF NOT EXISTS xray_events_agent
 
 CREATE INDEX IF NOT EXISTS xray_events_kind
     ON xray_events (project_id, kind, id);
+
+-- The stamp is superseded by the migration table, which records every version
+-- applied rather than only the latest. Dropping it here means a database
+-- written by the version before migrations existed arrives in the same shape
+-- as one created from nothing.
+DROP TABLE IF EXISTS xray_schema_stamp;

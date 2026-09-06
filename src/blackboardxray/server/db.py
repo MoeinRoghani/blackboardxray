@@ -1,12 +1,9 @@
 """The database, and every statement the platform runs against it.
 
-One pool serves every request. The schema is applied when the server opens the
-database and is safe to apply again, so a deployment starts by starting rather
-than by running a migration tool it also has to operate.
-
-A schema number is stamped and checked on open, for the reason the library
-stamps its own: a record written by a version this one cannot read should be
-refused at the door rather than at whichever query first touches the change.
+One pool serves every request. The schema is brought up to date when the server
+opens the database, so a deployment starts by starting rather than by running a
+migration tool it also has to operate. What that means and why it is safe with
+several replicas is in `migrate.py`.
 """
 
 from __future__ import annotations
@@ -18,7 +15,6 @@ from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from typing import Any
 
 from psycopg import Connection
@@ -27,23 +23,15 @@ from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
 from blackboardxray.events import Event, EventKind
-
-#: The schema this version reads and writes.
-SCHEMA_VERSION = 1
+from blackboardxray.server.migrate import migrate
 
 #: What a token looks like. The prefix is shown in the interface; the rest is
 #: shown once, when the key is made, and never again.
 TOKEN_PREFIX = "bxr_"
 
-_SCHEMA_PATH = Path(__file__).with_name("schema.sql")
-
 
 class DatabaseError(Exception):
     """The platform could not do what was asked of the database."""
-
-
-class SchemaVersionError(DatabaseError):
-    """The database holds a schema this version cannot read."""
 
 
 @dataclass(frozen=True)
@@ -74,7 +62,7 @@ class Database:
             kwargs={"autocommit": False},
         )
         self._pool.wait(timeout=10)
-        self.apply_schema()
+        self.migrate()
 
     @contextmanager
     def connection(self) -> Iterator[Connection[Any]]:
@@ -85,28 +73,10 @@ class Database:
     def close(self) -> None:
         self._pool.close()
 
-    def apply_schema(self) -> None:
-        """Creates what is missing and refuses a record written for a later schema."""
-        statements = _SCHEMA_PATH.read_text()
+    def migrate(self) -> list[int]:
+        """Brings the database up to the schema this build reads."""
         with self.connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(statements)
-                cursor.execute("SELECT version FROM xray_schema_stamp WHERE id = 1")
-                found = cursor.fetchone()
-                stamped = None if found is None else int(found["version"])
-                if stamped is not None and stamped > SCHEMA_VERSION:
-                    raise SchemaVersionError(
-                        f"the database holds schema {stamped} and this version of"
-                        f" blackboardxray reads {SCHEMA_VERSION}."
-                        " Upgrade blackboardxray to a version that reads it."
-                    )
-                if stamped != SCHEMA_VERSION:
-                    cursor.execute(
-                        "INSERT INTO xray_schema_stamp (id, version) VALUES (1, %s)"
-                        " ON CONFLICT (id) DO UPDATE SET version = EXCLUDED.version",
-                        (SCHEMA_VERSION,),
-                    )
-            connection.commit()
+            return migrate(connection)
 
     def healthy(self) -> bool:
         try:
