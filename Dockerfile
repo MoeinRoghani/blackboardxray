@@ -8,7 +8,7 @@ COPY ui/ ./
 COPY README.md ../README.md
 RUN npm run build
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 WORKDIR /app
 
 COPY pyproject.toml README.md LICENSE ./
