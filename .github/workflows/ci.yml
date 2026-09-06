@@ -85,10 +85,15 @@ jobs:
         run: |
           set -euo pipefail
           uv build
-          tar tzf dist/*.tar.gz | grep -q "server/web/index.html"
+          # Listed to a file first. `grep -q` exits on its first match and
+          # closes the pipe, `tar` then fails writing to it, and `pipefail`
+          # fails the step for a check that actually passed.
+          tar tzf dist/*.tar.gz > /tmp/sdist.txt
+          unzip -l dist/*.whl > /tmp/wheel.txt
+          grep -q "server/web/index.html" /tmp/sdist.txt
           echo "the sdist carries the interface"
-          unzip -l dist/*.whl | grep -q "server/web/index.html"
-          test "$(unzip -l dist/*.whl | grep -c 'server/web/assets/')" -gt 0
+          grep -q "server/web/index.html" /tmp/wheel.txt
+          test "$(grep -c "server/web/assets/" /tmp/wheel.txt)" -gt 0
           echo "the wheel carries the interface and its assets"
 
   # The quickstart in the README, run as written. A compose file that has drifted

@@ -158,7 +158,8 @@ jobs:
         run: |
           set -euo pipefail
           wheel=$(ls dist/*.whl)
-          unzip -l "$wheel" | grep -q "server/web/index.html"
+          unzip -l "$wheel" > /tmp/wheel.txt
+          grep -q "server/web/index.html" /tmp/wheel.txt
           echo "the interface is in $wheel"
       # The twine this bundles has to understand the metadata hatchling writes.
       # v1.12.2 shipped one that predates Metadata-Version 2.5 and reported the
