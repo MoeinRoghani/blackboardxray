@@ -224,6 +224,27 @@ export function useSetProjectRole(project: string) {
   });
 }
 
+export interface AuditRow {
+  at: string;
+  actor_email: string;
+  action: string;
+  target: string;
+  detail: Record<string, unknown>;
+  address: string;
+  project: string | null;
+}
+
+export function useAudit(
+  org: string
+): UseQueryResult<{ entries: AuditRow[] }, ApiError> {
+  return useQuery<{ entries: AuditRow[] }, ApiError>({
+    queryKey: ["audit", org],
+    queryFn: () => get(`/orgs/${org}/audit`),
+    enabled: Boolean(org),
+    retry: false,
+  });
+}
+
 // The account
 
 export function useSessions(): UseQueryResult<{ sessions: SessionRow[] }, ApiError> {

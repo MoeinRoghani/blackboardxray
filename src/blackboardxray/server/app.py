@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -37,6 +39,7 @@ from blackboardxray.server.provision import provision
 from blackboardxray.server.routes import admin, auth, data
 from blackboardxray.server.security import Guard
 from blackboardxray.server.settings import Settings
+from blackboardxray.server.upkeep import Upkeep
 
 logger = logging.getLogger("blackboardxray.server")
 
@@ -53,12 +56,32 @@ _WEB = Path(__file__).with_name("web")
 def build(settings: Settings, database: Database | None = None) -> FastAPI:
     """Builds the application. A test passes its own database."""
     store = database if database is not None else Database(settings.database_url)
+    upkeep = Upkeep(store)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        """Starts the sweeper, and stops it before the process goes.
+
+        Retention is a window a project sets and nothing else acts on. Without
+        this the sweeper was written, tested and never started: a project that
+        asked to keep thirty days kept everything, and said so nowhere.
+
+        Stopped and waited for, so a container being replaced does not have a
+        chunked delete killed halfway through one.
+        """
+        upkeep.start()
+        try:
+            yield
+        finally:
+            upkeep.stop()
+
     app = FastAPI(
         title="blackboardxray",
         version="0.1.0",
         description="Observability for blackboard runs.",
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",
+        lifespan=lifespan,
     )
     # The interface is a third of a megabyte of JavaScript and stylesheet, and
     # it was going over the wire uncompressed. Text compresses to roughly a

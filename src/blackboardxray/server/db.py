@@ -32,23 +32,10 @@ if TYPE_CHECKING:  # pragma: no cover
 TOKEN_PREFIX = "bxr_"
 
 
-class DatabaseError(Exception):
-    """The platform could not do what was asked of the database."""
-
-
 @dataclass(frozen=True)
 class Project:
     id: int
     slug: str
-    name: str
-
-
-@dataclass(frozen=True)
-class IssuedKey:
-    """A key, and the one moment its token is readable."""
-
-    token: str
-    prefix: str
     name: str
 
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import threading
+import time
 from types import SimpleNamespace
 from typing import Any
 
@@ -240,3 +242,42 @@ class TestRequestIdentifiers:
             "/api/v1/health", headers={"x-request-id": "from-the-proxy"}
         )
         assert answer.headers["x-request-id"] == "from-the-proxy"
+
+
+class TestTheSweeperIsActuallyRunning:
+    """That it works when called is not the same as that anything calls it.
+
+    The sweeper was written, unit tested and never started. Retention was a
+    window a project could set, an interface that offered it, and documentation
+    that described it, with nothing anywhere acting on any of it. Every test
+    called `sweep` directly and every one of them passed.
+    """
+
+    def test_the_application_starts_it(self, database: Any, dsn: str) -> None:
+        settings = Settings(database_url=dsn)
+        app = build(settings, database=database)
+        with TestClient(app):
+            running = [
+                one
+                for one in threading.enumerate()
+                if one.name == "blackboardxray-upkeep"
+            ]
+            assert running, "the application came up without its sweeper"
+            assert running[0].daemon
+
+    def test_it_stops_when_the_application_does(self, database: Any, dsn: str) -> None:
+        # A container being replaced must not have a chunked delete killed
+        # halfway through one.
+        settings = Settings(database_url=dsn)
+        with TestClient(build(settings, database=database)):
+            pass
+        for _ in range(50):
+            alive = [
+                one
+                for one in threading.enumerate()
+                if one.name == "blackboardxray-upkeep" and one.is_alive()
+            ]
+            if not alive:
+                return
+            time.sleep(0.1)
+        raise AssertionError("the sweeper outlived the application")

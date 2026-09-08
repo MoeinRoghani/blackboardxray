@@ -27,8 +27,9 @@ import {
   Select,
 } from "@/components/Form";
 import { Secret } from "@/routes/Gate";
-import { ago } from "@/lib/format";
+import { ago, instant } from "@/lib/format";
 import {
+  useAudit,
   useCreateInvite,
   useCreateOrganization,
   useCreateProject,
@@ -86,6 +87,7 @@ export function OrgSettings() {
           <Members org={orgId} mine={mine} mayManage={mayManage} />
           {mayManage ? <Invites org={orgId} mine={mine} /> : null}
           {mayManage ? <Projects org={orgId} /> : null}
+          {mayManage ? <Changed org={orgId} /> : null}
           {mayManage ? <Naming org={orgId} name={here?.name ?? ""} /> : null}
           {mine === "owner" ? (
             <Removal org={orgId} name={here?.name ?? ""} />
@@ -328,6 +330,80 @@ function Projects({ org }: { org: string }) {
       <Refused error={create.error} />
     </Panel>
   );
+}
+
+/** What each action is called, in words rather than in its identifier. */
+const SAID: Record<string, string> = {
+  "key.created": "made a key",
+  "key.revoked": "revoked a key",
+  "member.role_changed": "changed the role of",
+  "member.removed": "removed",
+  "member.left": "left",
+  "invite.created": "invited",
+  "project.deleted": "deleted the project",
+};
+
+/**
+ * What has been changed here, and by whom.
+ *
+ * A role change nobody can attribute is a role change nobody can review, which
+ * is why the record is kept. It was kept and shown nowhere, which reviews
+ * exactly as much as not keeping it.
+ *
+ * Reads are absent on purpose: a row per page view would be most of this table
+ * and answers nothing anybody asks of it.
+ */
+function Changed({ org }: { org: string }) {
+  const entries = useAudit(org);
+  const rows = entries.data?.entries ?? [];
+
+  return (
+    <Panel
+      title="What has changed"
+      note="Every key, role and invitation, with who did it. Reading is not recorded."
+    >
+      {entries.isLoading ? <Nothing>Loading.</Nothing> : null}
+      {!entries.isLoading && rows.length === 0 ? (
+        <Nothing>Nothing has been changed here yet.</Nothing>
+      ) : null}
+      {rows.map((entry, index) => (
+        <Row key={`${entry.at}-${index}`}>
+          <span className="min-w-0">
+            <span className="truncate type-caption text-text">
+              {entry.actor_email || "somebody who has since been removed"}{" "}
+              <span className="text-text-2">
+                {SAID[entry.action] ?? entry.action}
+              </span>{" "}
+              {entry.target}
+              {entry.project ? (
+                <span className="text-text-2"> in {entry.project}</span>
+              ) : null}
+            </span>
+            {describe(entry.detail) ? (
+              <span className="block truncate type-caption text-text-2">
+                {describe(entry.detail)}
+              </span>
+            ) : null}
+          </span>
+          <span
+            className="shrink-0 type-caption figures text-text-2"
+            title={instant(entry.at)}
+          >
+            {ago(entry.at)}
+          </span>
+        </Row>
+      ))}
+      <Refused error={entries.error} />
+    </Panel>
+  );
+}
+
+/** The one useful sentence in a detail object, where there is one. */
+function describe(detail: Record<string, unknown>): string {
+  if (detail.from && detail.to) return `${detail.from} to ${detail.to}`;
+  if (detail.was) return `they were ${detail.was}`;
+  if (detail.role) return `as ${detail.role}`;
+  return "";
 }
 
 function Naming({ org, name }: { org: string; name: string }) {
