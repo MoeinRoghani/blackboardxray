@@ -61,6 +61,13 @@ secret to generate: sessions are opaque identifiers held in Postgres and every
 credential is stored as a digest. Postgres is the only thing holding state, so
 it is the only thing to back up.
 
+To build it here instead of pulling it, which is also what to do from a
+network that intercepts TLS and leaves Docker unable to verify ghcr.io:
+
+```
+docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+```
+
 Without Docker:
 
 ```

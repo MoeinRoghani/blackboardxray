@@ -1,0 +1,12 @@
+# Runs the working copy instead of the published image.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+#
+# `docker-compose.yml` names a published image and no build, so `--build` alone
+# has nothing to build and quietly pulls the last release instead. This is what
+# makes a change to the Dockerfile actually run, which is what CI needs and
+# what anybody without a route to ghcr.io needs.
+services:
+  xray:
+    build: .
+    image: blackboardxray:working-copy

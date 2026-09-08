@@ -33,9 +33,13 @@ services:
   xray:
     # The published image, following the major line so it gets fixes without
     # anybody reading release notes. Pin the exact version instead to decide
-    # each time, or swap this for `build: .` to run the working copy.
+    # each time.
+    #
+    # To build the working copy rather than pull this, add the override beside
+    # it, which is also the way in from a network that cannot reach ghcr.io:
+    #
+    #   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
     image: ghcr.io/moeinroghani/blackboardxray:0
-    # build: .
     depends_on:
       postgres:
         condition: service_healthy
