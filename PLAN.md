@@ -284,6 +284,32 @@ green.
 | X4 | The client on PyPI by trusted publishing, installed from the index into a clean environment | done |
 | X5 | The quickstart walked from a clone nobody has touched, against the published image | done |
 
+## What the completeness audit found
+
+Asked of the finished platform rather than of the plan: which of its own
+endpoints does the interface never call, which of its own code does nothing
+reference, and which of its checks has never failed. A check that has never
+failed is either covering nothing or covering something nothing has broken yet,
+and the two look identical from a green tick.
+
+| # | Found | Status |
+| --- | --- | --- |
+| F1 | The retention sweeper was never started. Documented, configurable, unit tested, and wired into nothing. A project that asked to keep thirty days kept everything | done |
+| F2 | The audit trail was recorded and shown nowhere. The one endpoint no screen called | done |
+| F3 | `DatabaseError` and `IssuedKey`, orphaned when their statements moved to `People` | done |
+| F4 | CodeQL had never passed on a pull request. Green on `main`, where there is no diff to narrow alerts to, and red on all nine | done |
+| F5 | The compose job never built the Dockerfile. The service names an image and no build, so `--build` pulled the last release. A Dockerfile that cannot build passed every check | done |
+| F6 | The package claimed Python 3.14 in its classifiers and had never been run on it. The image now runs it | done |
+| F7 | The release workflow offers to publish a tag again when its artefacts failed. Publishing is two things, and the run repairing one died on the other | done |
+| F8 | Nine dependency updates, four of them major, three in a workflow CI never runs | done |
+| F9 | Two `tsbuildinfo` files were tracked, so every build dirtied the tree | done |
+
+Open, and not ours to close from here: the dependency graph is disabled on this
+account, so `dependency-review` cannot run and fails on every pull request. It
+is a toggle in the repository's security settings. Nothing in the repository
+fixes it, and a check that is red for a reason nobody can act on is how F4
+survived nine pull requests.
+
 ## Rules for every step
 
 - No value is set on a screen. A screen needing one is a token gap, closed in the
