@@ -37,7 +37,7 @@ jobs:
       released: ${{ steps.please.outputs.release_created }}
       tag: ${{ steps.please.outputs.tag_name }}
     steps:
-      - uses: googleapis/release-please-action@a02a34c4d625f9be7cb89156071d8567266a2445 # v4.1.3
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v4.1.3
         id: please
         if: github.event_name == 'push'
         with:
