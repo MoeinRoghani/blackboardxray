@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/MoeinRoghani/blackboardxray/compare/v0.2.1...v0.2.2) (2026-09-08)
+
+
+### Documentation
+
+* what the completeness audit found ([e4afec3](https://github.com/MoeinRoghani/blackboardxray/commit/e4afec34008e90d53016efa88603f5597c4f1711))
+
 ## [0.2.1](https://github.com/MoeinRoghani/blackboardxray/compare/v0.2.0...v0.2.1) (2026-09-08)
 
 
