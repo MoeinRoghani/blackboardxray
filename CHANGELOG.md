@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/MoeinRoghani/blackboardxray/compare/v0.2.0...v0.2.1) (2026-09-08)
+
+
+### What was fixed
+
+* **examples:** the fixture runs on the python a demo machine came with ([6a7e6f3](https://github.com/MoeinRoghani/blackboardxray/commit/6a7e6f336dea9c1ce90f85ade1322df190a661e2))
+* **server:** the retention sweeper was never started ([42fc876](https://github.com/MoeinRoghani/blackboardxray/commit/42fc8761b1b8af2fb5301ab0357ccf088bd343e0))
+
 ## [0.2.0](https://github.com/MoeinRoghani/blackboardxray/compare/v0.1.0...v0.2.0) (2026-09-06)
 
 
