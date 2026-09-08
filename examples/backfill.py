@@ -10,7 +10,13 @@ So this posts events over the ingest API with the timestamps a day of traffic
 would have carried. The vocabulary is the real one and the wire is the real
 one; only the clock is invented. Nothing here runs in a deployment.
 
-    BLACKBOARDXRAY_TOKEN=bxr_... python examples/backfill.py [hours] [per_hour]
+    BLACKBOARDXRAY_TOKEN=bxr_... python3 examples/backfill.py [hours] [per_hour]
+
+Nothing is imported that is not in the standard library, and nothing here needs
+a version newer than 3.7. This is the one file in the project somebody runs
+before they have installed anything, on whichever `python3` their machine came
+with, so `datetime.UTC` is spelled the long way: it arrived in 3.11 and macOS
+still ships 3.9.
 """
 
 from __future__ import annotations
@@ -19,8 +25,10 @@ import json
 import os
 import random
 import sys
+import time
+import urllib.error
 import urllib.request
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
 
@@ -198,25 +206,43 @@ def _rate(hour: int, incident: int) -> float:
 
 
 def _post(batch: list[dict[str, Any]]) -> None:
-    request = urllib.request.Request(
-        ENDPOINT.rstrip("/") + "/api/v1/ingest",
-        data=json.dumps({"events": batch}).encode("utf-8"),
-        method="POST",
-        headers={
-            "content-type": "application/json",
-            "authorization": f"Bearer {TOKEN}",
-        },
-    )
-    with urllib.request.urlopen(request, timeout=60) as answer:
-        if answer.status >= 300:
-            raise SystemExit(f"ingest answered {answer.status}")
+    """Sends one batch, waiting where the platform says to wait.
+
+    A day of traffic arrives faster than a real day of traffic does, so this
+    reaches the ingest rate limit almost immediately. Being limited costs a
+    delay and not the events: the platform names the wait in `Retry-After` and
+    the same batch is sent again, which is exactly what the real client does.
+    """
+    body = json.dumps({"events": batch}).encode("utf-8")
+    for attempt in range(1, 21):
+        request = urllib.request.Request(
+            ENDPOINT.rstrip("/") + "/api/v1/ingest",
+            data=body,
+            method="POST",
+            headers={
+                "content-type": "application/json",
+                "authorization": f"Bearer {TOKEN}",
+            },
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=60) as answer:
+                if answer.status >= 300:
+                    raise SystemExit(f"ingest answered {answer.status}")
+                return
+        except urllib.error.HTTPError as answered:
+            if answered.code != 429:
+                raise
+            wait = float(answered.headers.get("retry-after") or 1)
+            print(f"  the platform asked for {wait:.0f}s, attempt {attempt}")
+            time.sleep(wait)
+    raise SystemExit("the platform kept asking to wait; try a smaller volume")
 
 
 def main() -> None:
     hours = int(sys.argv[1]) if len(sys.argv) > 1 else 24
     per_hour = int(sys.argv[2]) if len(sys.argv) > 2 else 40
     random.seed(4476)
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     incident = random.randint(2, max(3, hours - 2))
     batch: list[dict[str, Any]] = []
     runs = 0

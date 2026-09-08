@@ -29,6 +29,32 @@ gh attestation verify oci://ghcr.io/moeinroghani/blackboardxray:0 \
 docker buildx imagetools inspect ghcr.io/moeinroghani/blackboardxray:0
 ```
 
+## Trying it with data in it
+
+An empty platform demonstrates nothing. This puts a day of traffic in, with a
+working day's shape and an incident spike in the middle of it:
+
+```
+BLACKBOARDXRAY_TOKEN=bxr_the_key_the_setup_screen_gave_you \
+  python3 examples/backfill.py 24 40
+```
+
+Roughly six hundred runs and twelve thousand events, in about ten seconds. The
+two numbers are hours to cover and runs per hour, so `168 20` fills a week.
+
+It needs nothing installed. The script imports only the standard library and
+nothing newer than Python 3.7, because it is the one file somebody runs before
+they have installed anything, on whichever `python3` their machine came with.
+
+A day of traffic arrives faster than a day, so it reaches the ingest rate limit
+almost at once and waits where the platform tells it to, which is what the real
+client does with the same answer.
+
+**It fabricates.** The wire and the vocabulary are real and the clock is
+invented, so nothing here runs in a deployment. `examples/seed.py` is the
+opposite: six runs through real models and the real client, which is the proof
+the path works rather than a picture of one.
+
 ## What it needs
 
 **Postgres 14 or later.** That is the whole list. There is no cache to run, no

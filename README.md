@@ -26,6 +26,7 @@ no secret for you to generate.
 - [Observe a run](#observe-a-run)
 - [What is recorded](#what-is-recorded)
 - [Who can see what](#who-can-see-what)
+- [Seeing it with something in it](#seeing-it-with-something-in-it)
 - [What the interface shows](#what-the-interface-shows)
 - [Development](#development)
 - [Self-hosting reference](docs/self-hosting.md)
@@ -98,6 +99,24 @@ An agent deployed as its own service wraps its board instead:
 ```python
 board = xray.agent_board(BoardClient(base_url=..., board_id=..., agent="ocp"))
 ```
+
+## Seeing it with something in it
+
+An empty platform demonstrates nothing. Put a day of fabricated traffic in,
+using the key the setup screen gave you:
+
+```
+BLACKBOARDXRAY_TOKEN=bxr_... python3 examples/backfill.py 24 40
+```
+
+Roughly six hundred runs and twelve thousand events, in about ten seconds, with
+a working day's shape and an incident spike in the middle. It needs nothing
+installed: the script imports only the standard library and nothing newer than
+Python 3.7, because it is the one file somebody runs before installing
+anything.
+
+The wire and the vocabulary are real and only the clock is invented, so nothing
+here runs in a deployment.
 
 ## What is recorded
 
