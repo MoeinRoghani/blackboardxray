@@ -1,6 +1,6 @@
 # The interface is built and then copied into the Python image, so the shipped
 # container carries no Node and no toolchain.
-FROM node:24-alpine AS interface
+FROM node:26-alpine AS interface
 WORKDIR /ui
 COPY ui/package.json ui/package-lock.json ./
 RUN npm ci
@@ -8,7 +8,7 @@ COPY ui/ ./
 COPY README.md ../README.md
 RUN npm run build
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 WORKDIR /app
 
 COPY pyproject.toml README.md LICENSE ./

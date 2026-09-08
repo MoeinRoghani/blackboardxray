@@ -17,7 +17,8 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "baseUrl": ".",
+    // Resolved against this file. TypeScript 7 removed baseUrl, and
+    // these were already written relative to it.
     "paths": { "@/*": ["./src/*"] }
   },
   "include": ["src"]
