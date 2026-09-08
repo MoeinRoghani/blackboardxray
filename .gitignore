@@ -24,3 +24,6 @@ Product Design Procedure.md
 LLM Build Prompts.txt
 Product Design Procedure.md
 .impeccable/
+
+# Written by tsc -b on every build.
+ui/*.tsbuildinfo
