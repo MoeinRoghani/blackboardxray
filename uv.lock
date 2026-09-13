@@ -103,16 +103,16 @@ wheels = [
 
 [[package]]
 name = "blackboardx"
-version = "0.14.0"
+version = "0.14.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e7/f9/06fe0e3e383fc71a85f8c6b42ed87b7b9affad881a2f530098bada4071f5/blackboardx-0.14.0.tar.gz", hash = "sha256:f7bee05ab86a5904758d7dc71dbb856684a7f327d81c0002849537543ca4932a", size = 374786, upload-time = "2026-09-06T06:33:13.764Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c3/29/e204109413fd541c013c5db7eaaf7dbc50c169e8219e5d93e26b926d586d/blackboardx-0.14.1.tar.gz", hash = "sha256:faf53efc41323bb61e4b72e4431f55cc9c478ee5e3a372db51a9ad7c07d2209a", size = 376790, upload-time = "2026-09-08T01:32:51.048Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/00/f4/3daccd59925b2de6bf275b25fca45fd2bdb71cb7b1aa9d89806248be1acf/blackboardx-0.14.0-py3-none-any.whl", hash = "sha256:1dd154b3e528338b5beabf5dad7014e846eedd761048613bce77f99d853dca2e", size = 106014, upload-time = "2026-09-06T06:33:12.416Z" },
+    { url = "https://files.pythonhosted.org/packages/5b/8e/d55bd96a47d08d3236f783e7b3e2c0ebdf40725a0f33792607108b085532/blackboardx-0.14.1-py3-none-any.whl", hash = "sha256:0f10f898d7fadb859571f1e7fe6549f3e3d1e97100e07176e830ff366d95432b", size = 106562, upload-time = "2026-09-08T01:32:49.685Z" },
 ]
 
 [[package]]
 name = "blackboardxray"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "." }
 
 [package.optional-dependencies]
